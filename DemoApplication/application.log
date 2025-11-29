@@ -1,0 +1,138 @@
+[2025-11-29T18:23:34.217146300] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:24:59.007315600] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:26:28.890229900] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:28:19.613360600] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:30:33.881982600] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:31:26.860358400] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:31:27.938549900] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:31:44.899349400] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:31:46.064968200] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:33:18.388606500] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:33:19.454770400] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:38:20.930657100] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:38:22.017247800] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:43:08.584191300] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:43:09.654438500] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:46:01.330865500] [ELS] Activating ACL Security for user: 5
+[2025-11-29T18:46:01.330865500] [ELS] Activating ACL Security for user: 5
+[2025-11-29T18:46:01.360865500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T18:46:01.360865500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T18:46:01.361867] [ELS] Deactivating ACL Security
+[2025-11-29T18:46:01.361867] [ELS] Deactivating ACL Security
+[2025-11-29T18:47:01.849618700] [ELS] Activating ACL Security for user: 4
+[2025-11-29T18:47:01.849618700] [ELS] Activating ACL Security for user: 4
+[2025-11-29T18:47:01.852618800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '4'
+[2025-11-29T18:47:01.852618800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '4'
+[2025-11-29T18:47:01.853618600] [ELS] Deactivating ACL Security
+[2025-11-29T18:47:01.853618600] [ELS] Deactivating ACL Security
+[2025-11-29T18:47:15.456921600] [ELS] Activating ACL Security for user: 6
+[2025-11-29T18:47:15.457919700] [ELS] Activating ACL Security for user: 6
+[2025-11-29T18:47:15.458921] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T18:47:15.459926300] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T18:47:15.459926300] [ELS] Deactivating ACL Security
+[2025-11-29T18:47:15.460924800] [ELS] Deactivating ACL Security
+[2025-11-29T18:53:11.752665600] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T18:53:12.824483200] [ELS] ACL Table initialized successfully.
+[2025-11-29T18:53:19.376406100] [ELS] Activating ACL Security for user: 5
+[2025-11-29T18:53:19.421880100] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T18:53:19.424874900] [ELS] Deactivating ACL Security
+[2025-11-29T18:53:19.454164200] [ELS] Activating ACL Security for user: 5
+[2025-11-29T18:53:19.456165] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T18:53:19.457166200] [ELS] Deactivating ACL Security
+[2025-11-29T19:00:16.112663600] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T19:00:17.169555600] [ELS] ACL Table initialized successfully.
+[2025-11-29T19:00:23.050085600] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:00:23.050085600] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:00:23.115590100] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:00:23.115590100] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:00:23.124590600] [ELS] Deactivating ACL Security
+[2025-11-29T19:00:23.124590600] [ELS] Deactivating ACL Security
+[2025-11-29T19:00:28.414978300] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:00:28.415981800] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:00:28.421029600] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:00:28.421029600] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:00:28.422029800] [ELS] Deactivating ACL Security
+[2025-11-29T19:00:28.422029800] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:19.322898900] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:03:19.324895600] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:03:19.325895500] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:28.640052400] [ELS] Activating ACL Security for user: 6
+[2025-11-29T19:03:28.640052400] [ELS] Activating ACL Security for user: 6
+[2025-11-29T19:03:28.642050600] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T19:03:28.642050600] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T19:03:28.643050500] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:28.643050500] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:35.145699700] [ELS] Activating ACL Security for user: 4
+[2025-11-29T19:03:35.145699700] [ELS] Activating ACL Security for user: 4
+[2025-11-29T19:03:35.147700500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '4'
+[2025-11-29T19:03:35.147700500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '4'
+[2025-11-29T19:03:35.148701700] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:35.148701700] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:51.070010] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:03:51.070010] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:03:51.072009800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:03:51.072009800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:03:51.073010600] [ELS] Deactivating ACL Security
+[2025-11-29T19:03:51.073010600] [ELS] Deactivating ACL Security
+[2025-11-29T19:05:10.401135500] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T19:05:11.472701500] [ELS] ACL Table initialized successfully.
+[2025-11-29T19:05:40.930290600] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:05:40.930290600] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:05:40.994320200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:05:40.994320200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:05:41.002320300] [ELS] Deactivating ACL Security
+[2025-11-29T19:05:41.002320300] [ELS] Deactivating ACL Security
+[2025-11-29T19:05:44.613222900] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:05:44.613222900] [ELS] Activating ACL Security for user: 5
+[2025-11-29T19:05:44.616222800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:05:44.616222800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T19:05:44.617222900] [ELS] Deactivating ACL Security
+[2025-11-29T19:05:44.617222900] [ELS] Deactivating ACL Security
+[2025-11-29T19:06:05.981479] [ELS] Activating ACL Security for user: 6
+[2025-11-29T19:06:05.981479] [ELS] Activating ACL Security for user: 6
+[2025-11-29T19:06:05.984644500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T19:06:05.984644500] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T19:06:05.985643400] [ELS] Deactivating ACL Security
+[2025-11-29T19:06:05.985643400] [ELS] Deactivating ACL Security
+[2025-11-29T21:06:50.225055800] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T21:06:51.384338200] [ELS] ACL Table initialized successfully.
+[2025-11-29T21:06:59.031240400] [ELS] Activating ACL Security for user: 6
+[2025-11-29T21:06:59.092715800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T21:06:59.099232400] [ELS] Deactivating ACL Security
+[2025-11-29T21:06:59.158375] [ELS] Activating ACL Security for user: 6
+[2025-11-29T21:06:59.161381200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T21:06:59.162380700] [ELS] Deactivating ACL Security
+[2025-11-29T21:08:30.555737] [ELS] Activating ACL Security for user: 5
+[2025-11-29T21:08:30.558248500] [ELS] Activating ACL Security for user: 5
+[2025-11-29T21:08:30.559431100] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T21:08:30.560429100] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '5'
+[2025-11-29T21:08:30.560429100] [ELS] Deactivating ACL Security
+[2025-11-29T21:08:30.561432600] [ELS] Deactivating ACL Security
+[2025-11-29T21:08:40.994546300] [ELS] Activating ACL Security for user: 6
+[2025-11-29T21:08:40.994546300] [ELS] Activating ACL Security for user: 6
+[2025-11-29T21:08:40.997048900] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T21:08:40.998051900] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '6'
+[2025-11-29T21:08:40.998051900] [ELS] Deactivating ACL Security
+[2025-11-29T21:08:40.999056600] [ELS] Deactivating ACL Security
+[2025-11-29T21:18:06.210740900] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T21:18:07.383186200] [ELS] ACL Table initialized successfully.
+[2025-11-29T21:19:04.295035] [ELS] Activating ACL Security for user: 9
+[2025-11-29T21:19:04.295035] [ELS] Activating ACL Security for user: 9
+[2025-11-29T21:19:04.343105200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '9'
+[2025-11-29T21:19:04.343105200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '9'
+[2025-11-29T21:19:04.344107600] [ELS] Deactivating ACL Security
+[2025-11-29T21:19:04.344107600] [ELS] Deactivating ACL Security
+[2025-11-29T21:19:12.593509900] [ELS] Activating ACL Security for user: 8
+[2025-11-29T21:19:12.593509900] [ELS] Activating ACL Security for user: 8
+[2025-11-29T21:19:12.596507800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '8'
+[2025-11-29T21:19:12.596507800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '8'
+[2025-11-29T21:19:12.597507100] [ELS] Deactivating ACL Security
+[2025-11-29T21:19:12.597507100] [ELS] Deactivating ACL Security
+[2025-11-29T21:42:21.523549200] [ELS] Wrapping DataSource in Proxy: dataSource
+[2025-11-29T21:42:22.611111100] [ELS] ACL Table initialized successfully.
+[2025-11-29T21:42:37.598971900] [ELS] Activating ACL Security for user: 8
+[2025-11-29T21:42:37.642984200] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '8'
+[2025-11-29T21:42:37.644984700] [ELS] Deactivating ACL Security
+[2025-11-29T21:42:37.680035700] [ELS] Activating ACL Security for user: 8
+[2025-11-29T21:42:37.682098800] [ELS] Rewritten SQL: SELECT n1_0.id, n1_0.category, n1_0.content, n1_0.title FROM notes n1_0 INNER JOIN els_acl_table acl_security ON acl_security.row_id = n1_0.id AND acl_security.table_name = 'notes' WHERE acl_security.user_id = '8'
+[2025-11-29T21:42:37.683103700] [ELS] Deactivating ACL Security
