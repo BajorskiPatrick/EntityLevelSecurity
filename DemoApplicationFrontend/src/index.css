@@ -1,0 +1,107 @@
+:root {
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --surface-hover: #2c2c2c;
+    --primary-color: #646cff;
+    --primary-hover: #535bf2;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #333333;
+    --error-color: #cf6679;
+    --success-color: #03dac6;
+
+    --radius: 8px;
+    --spacing: 1rem;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16);
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: #ffffff;
+    margin-top: 0;
+}
+
+/* --- Style Formularzy (Inputy) --- */
+input, select, textarea {
+    background-color: #2a2a2a; /* Ciemne tło inputów */
+    border: 1px solid var(--border-color);
+    color: #ffffff; /* Biały tekst w inputach */
+    padding: 0.8rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box; /* Ważne, żeby padding nie rozpychał szerokości */
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background-color: #333;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* --- Style Przycisków --- */
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background-color: var(--primary-hover);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+button.secondary {
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+button.danger {
+    background-color: #cf6679;
+    color: #000;
+}
+
+/* --- Kontenery i Karty --- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.card {
+    background-color: var(--surface-color);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.helper-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
