@@ -28,6 +28,23 @@ public class AclConnectionProxy implements Connection {
         return delegate.prepareStatement(sql);
     }
 
+    @Override public Statement createStatement() throws SQLException {
+        Statement statement = delegate.createStatement();
+        return new AclStatementProxy(statement);
+    }
+
+    @Override
+    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
+        Statement statement = delegate.createStatement(resultSetType, resultSetConcurrency);
+        return new AclStatementProxy(statement);
+    }
+
+    @Override
+    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+        Statement statement = delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
+        return new AclStatementProxy(statement);
+    }
+
     @Override
     public CallableStatement prepareCall(String sql) throws SQLException {
         return delegate.prepareCall(sql);
@@ -56,10 +73,6 @@ public class AclConnectionProxy implements Connection {
     @Override
     public void rollback() throws SQLException {
         delegate.rollback();
-    }
-
-    @Override public Statement createStatement() throws SQLException {
-        return delegate.createStatement();
     }
 
     @Override public void close() throws SQLException {
@@ -117,11 +130,6 @@ public class AclConnectionProxy implements Connection {
     }
 
     @Override
-    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-        return delegate.createStatement(resultSetType, resultSetConcurrency);
-    }
-
-    @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
         return delegate.prepareStatement(sql, resultSetType, resultSetConcurrency);
     }
@@ -169,11 +177,6 @@ public class AclConnectionProxy implements Connection {
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         delegate.releaseSavepoint(savepoint);
-    }
-
-    @Override
-    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     @Override
