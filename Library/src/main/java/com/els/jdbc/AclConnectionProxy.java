@@ -224,6 +224,7 @@ public class AclConnectionProxy implements Connection {
         if(AclContext.isActive()){
             String newSql = rewriter.addAclToSql(sql, AclContext.getCurrentUser());
             logger.log("Rewritten SQL: " + newSql);
+            return delegate.prepareStatement(newSql, columnNames);
         }
         return delegate.prepareStatement(sql, columnNames);
     }
