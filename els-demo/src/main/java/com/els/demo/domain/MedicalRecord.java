@@ -1,0 +1,61 @@
+package com.els.demo.domain;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+
+@Entity
+@Table(name = "medical_records")
+@FilterDef(name = "elsFilter", parameters = @ParamDef(name = "idList", type = Long.class))
+@Filter(name = "elsFilter", condition = "id IN (:idList)")
+@FilterDef(name = "elsBlacklistFilter", parameters = @ParamDef(name = "idList", type = Long.class))
+@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:idList)")
+public class MedicalRecord {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "patient_id")
+    private Patient patient;
+
+    @Column(nullable = false)
+    private String diagnosis;
+
+    @Column(length = 1000)
+    private String treatment;
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    public String getDiagnosis() {
+        return diagnosis;
+    }
+
+    public void setDiagnosis(String diagnosis) {
+        this.diagnosis = diagnosis;
+    }
+
+    public String getTreatment() {
+        return treatment;
+    }
+
+    public void setTreatment(String treatment) {
+        this.treatment = treatment;
+    }
+}
