@@ -5,18 +5,21 @@ import com.els.cache.PermissionKey;
 import com.els.domain.*;
 import com.els.repository.PermissionRepository;
 import com.els.strategies.AccessStrategy.FilterCondition;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PermissionResolver {
 
     private final PermissionRepository permissionRepository;
     private final PermissionCache permissionCache;
+
+    public PermissionResolver(PermissionRepository permissionRepository, PermissionCache permissionCache) {
+        this.permissionRepository = permissionRepository;
+        this.permissionCache = permissionCache;
+    }
 
     public FilterCondition resolve(User user, String entityName, Action action) {
         PermissionKey key = new PermissionKey(user.getUsername(), entityName, action);

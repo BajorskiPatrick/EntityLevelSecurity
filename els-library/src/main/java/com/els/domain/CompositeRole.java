@@ -1,16 +1,12 @@
 package com.els.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @DiscriminatorValue("COMPOSITE")
-@Getter
-@Setter
 public class CompositeRole extends Role {
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -23,5 +19,14 @@ public class CompositeRole extends Role {
 
     public void removeChild(Role role) {
         this.children.remove(role);
+    }
+
+    // Manual Getters and Setters
+    public Set<Role> getChildren() {
+        return children;
+    }
+
+    public void setChildren(Set<Role> children) {
+        this.children = children;
     }
 }

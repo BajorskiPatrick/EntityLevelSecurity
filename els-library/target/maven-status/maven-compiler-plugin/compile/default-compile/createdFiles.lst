@@ -1,4 +1,5 @@
 com\els\context\SecurityContext.class
+com\els\domain\Permission$Builder.class
 com\els\repository\PermissionRepository.class
 com\els\cache\PermissionCache.class
 com\els\service\PermissionResolver.class

@@ -1,7 +1,10 @@
+C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\config\WebConfig.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\DemoApplication.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\domain\Product.java
+C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\dto\PermissionRequest.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\loader\DataLoader.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\repository\ProductRepository.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\service\ProductService.java
+C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\web\AdminController.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\web\ProductController.java
 C:\Users\bajor\OneDrive\Pulpit\Semestr5\EntityLevelSecurity\els-demo\src\main\java\com\els\demo\web\UserContextFilter.java

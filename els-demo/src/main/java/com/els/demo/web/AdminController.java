@@ -16,13 +16,20 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
-@RequiredArgsConstructor
 public class AdminController {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final PermissionManager permissionManager;
+
+    public AdminController(UserRepository userRepository, RoleRepository roleRepository,
+            PermissionRepository permissionRepository, PermissionManager permissionManager) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
+        this.permissionManager = permissionManager;
+    }
 
     @GetMapping("/users")
     public List<User> getUsers() {
@@ -41,25 +48,25 @@ public class AdminController {
 
     @PostMapping("/permissions")
     public ResponseEntity<Permission> createPermission(@RequestBody PermissionRequest request) {
-        Permission p = new Permission();
-        p.setEntityName(request.getEntityName());
-        p.setAction(request.getAction());
-        p.setAccessType(request.getAccessType());
-        p.setRowIds(request.getRowIds());
+        Permission.Builder builder = Permission.builder()
+                .entity(request.getEntityName())
+                .action(request.getAction())
+                .accessType(request.getAccessType())
+                .rowIds(request.getRowIds());
 
         if (request.getUsername() != null && !request.getUsername().isEmpty()) {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            p.setUser(user);
+            builder.user(user);
         } else if (request.getRoleId() != null) {
             Role role = roleRepository.findById(request.getRoleId())
                     .orElseThrow(() -> new RuntimeException("Role not found"));
-            p.setRole(role);
+            builder.role(role);
         } else {
             return ResponseEntity.badRequest().build();
         }
 
-        Permission saved = permissionManager.savePermission(p);
+        Permission saved = permissionManager.savePermission(builder.build());
         return ResponseEntity.ok(saved);
     }
 
