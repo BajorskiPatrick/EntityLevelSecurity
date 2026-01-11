@@ -1,0 +1,7 @@
+com\els\demo\DemoApplication.class
+com\els\demo\web\UserContextFilter.class
+com\els\demo\domain\Product.class
+com\els\demo\loader\DataLoader.class
+com\els\demo\service\ProductService.class
+com\els\demo\web\ProductController.class
+com\els\demo\repository\ProductRepository.class
