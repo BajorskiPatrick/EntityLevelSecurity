@@ -27,31 +27,31 @@ public class HospitalService {
         this.medicalRecordRepository = medicalRecordRepository;
     }
 
-    @Secure(entity = "Department", action = Action.SELECT)
+    @Secure(entity = Department.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<Department> getAllDepartments() {
         return departmentRepository.findAll();
     }
 
-    @Secure(entity = "Patient", action = Action.SELECT)
+    @Secure(entity = Patient.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<Patient> getAllPatients() {
         return patientRepository.findAll();
     }
 
-    @Secure(entity = "Patient", action = Action.SELECT)
+    @Secure(entity = Patient.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<Patient> getPatientsByDepartment(Long deptId) {
         return patientRepository.findByDepartmentId(deptId);
     }
 
-    @Secure(entity = "MedicalRecord", action = Action.SELECT)
+    @Secure(entity = MedicalRecord.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<MedicalRecord> getAllMedicalRecords() {
         return medicalRecordRepository.findAll();
     }
 
-    @Secure(entity = "MedicalRecord", action = Action.SELECT)
+    @Secure(entity = MedicalRecord.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<MedicalRecord> getMedicalRecordsByPatient(Long patientId) {
         return medicalRecordRepository.findByPatientId(patientId);
@@ -59,13 +59,13 @@ public class HospitalService {
 
     // --- Write Operations (INSERT) ---
 
-    @Secure(entity = "Patient", action = Action.INSERT)
+    @Secure(entity = Patient.class, action = Action.INSERT)
     @Transactional
     public Patient addPatient(Patient patient) {
         return patientRepository.save(patient);
     }
 
-    @Secure(entity = "MedicalRecord", action = Action.INSERT)
+    @Secure(entity = MedicalRecord.class, action = Action.INSERT)
     @Transactional
     public MedicalRecord addMedicalRecord(MedicalRecord record) {
         return medicalRecordRepository.save(record);
@@ -73,7 +73,7 @@ public class HospitalService {
 
     // --- Write Operations (UPDATE) ---
 
-    @Secure(entity = "MedicalRecord", action = Action.UPDATE)
+    @Secure(entity = MedicalRecord.class, action = Action.UPDATE)
     @Transactional
     public MedicalRecord updateMedicalRecord(MedicalRecord record) {
         return medicalRecordRepository.save(record);
@@ -81,7 +81,7 @@ public class HospitalService {
 
     // --- Write Operations (DELETE) ---
 
-    @Secure(entity = "Patient", action = Action.DELETE)
+    @Secure(entity = Patient.class, action = Action.DELETE)
     @Transactional
     public void dischargePatient(Long patientId) {
         patientRepository.deleteById(patientId);
