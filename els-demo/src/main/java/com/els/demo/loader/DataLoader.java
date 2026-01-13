@@ -77,9 +77,21 @@ public class DataLoader implements CommandLineRunner {
         // --- 5. Permissions ---
 
         // ADMIN: Full Access (Simulated by not checking or granting ALL)
-        // For demo, let's give broad permissions or rely on logic that Admin bypasses
-        // checks (if implemented),
         // but here we use the library, so we explicitly grant access.
+        createPermission(null, adminRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Department", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Department", Action.UPDATE, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Department", Action.DELETE, AccessType.WHITELIST, "*");
+
+        createPermission(null, adminRole, "Patient", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Patient", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Patient", Action.UPDATE, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Patient", Action.DELETE, AccessType.WHITELIST, "*");
+
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
 
         // DOCTOR: Can SELECT all patients in their department?
         // Let's rely on Whitelist for specific demonstration.
@@ -143,6 +155,7 @@ public class DataLoader implements CommandLineRunner {
     private Patient createPatient(String name, Department dept) {
         Patient p = new Patient();
         p.setName(name);
+        p.setSsn("SSN-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000));
         p.setDepartment(dept);
         return patientRepository.save(p);
     }

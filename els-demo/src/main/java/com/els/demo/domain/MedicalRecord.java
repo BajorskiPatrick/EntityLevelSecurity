@@ -2,15 +2,11 @@ package com.els.demo.domain;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 @Entity
 @Table(name = "medical_records")
-@FilterDef(name = "elsFilter", parameters = @ParamDef(name = "idList", type = Long.class))
-@Filter(name = "elsFilter", condition = "id IN (:idList)")
-@FilterDef(name = "elsBlacklistFilter", parameters = @ParamDef(name = "idList", type = Long.class))
-@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:idList)")
+@Filter(name = "elsFilter", condition = "id IN (:ids)")
+@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:ids)")
 public class MedicalRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

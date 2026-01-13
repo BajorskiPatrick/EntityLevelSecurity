@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  els-db:
+    image: postgres:16-alpine
+    container_name: els-db
+    environment:
+      POSTGRES_DB: els_demo
+      POSTGRES_USER: els_user
+      POSTGRES_PASSWORD: els_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U els_user -d els_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  els-backend:
+    build: 
+      context: .
+      dockerfile: els-demo/Dockerfile
+    container_name: els-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://els-db:5432/els_demo
+      SPRING_DATASOURCE_USERNAME: els_user
+      SPRING_DATASOURCE_PASSWORD: els_password
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+    depends_on:
+      els-db:
+        condition: service_healthy
+
+  els-frontend:
+    build: 
+      context: ./els-frontend
+      dockerfile: Dockerfile
+    container_name: els-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - els-backend
+
+volumes:
+  db_data:
