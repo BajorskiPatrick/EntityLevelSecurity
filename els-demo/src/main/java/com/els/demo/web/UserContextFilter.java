@@ -22,12 +22,17 @@ public class UserContextFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
-        String username = req.getHeader("X-User");
 
-        if (username != null) {
-            User user = userRepository.findByUsername(username).orElse(null);
-            if (user != null) {
-                securityContext.setCurrentUser(user);
+        // Priority 1: Session-based Auth
+        Long userId = (Long) req.getSession().getAttribute("USER_ID");
+
+        if (userId != null) {
+            userRepository.findById(userId).ifPresent(securityContext::setCurrentUser);
+        } else {
+            // Priority 2: Insecure Header (Legacy/Dev fallback)
+            String username = req.getHeader("X-User");
+            if (username != null) {
+                userRepository.findByUsername(username).ifPresent(securityContext::setCurrentUser);
             }
         }
 
