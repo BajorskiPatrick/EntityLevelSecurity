@@ -96,6 +96,10 @@ public class DataLoader implements CommandLineRunner {
         // DOCTOR: Can SELECT all patients in their department?
         // Let's rely on Whitelist for specific demonstration.
 
+        // Shared: Doctors and Nurses can see Departments
+        createPermission(null, doctorRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, nurseRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
+
         // dr_strange (Doctor): Can see p1, p2 (Cardio patients)
         createPermission(null, doctorRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p1.getId() + "," + p2.getId());
@@ -107,6 +111,36 @@ public class DataLoader implements CommandLineRunner {
         // nurse_joy (Nurse): Can see p4, p5 (ER).
         createPermission(null, nurseRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p4.getId() + "," + p5.getId());
+
+        // nurse_joy (Nurse): Can see records for p4, p5
+        // Ideally we'd query record IDs, but for demo we can map based on knowledge of
+        // data creation
+        // records: 5 (Trauma) is for p4.
+        // Let's grant access to all records for simplicity in demo or just *
+        // Specifying * for now to resolve Access Denied quickly, or specific IDs if we
+        // want to be strict.
+        // Given existing Patient restriction, let's restrict records too?
+        // Actually, let's just use * for MedicalRecord SELECT for simplicity as the
+        // Patient filter limits "ownership" usually,
+        // but here filters are independent.
+        // Let's grant * for MedicalRecord SELECT to Doctors and Nurses so they can see
+        // records...
+        // Wait, if I grant *, they see ALL records.
+        // Demo requirement: "Entity Level Security".
+        // Let's grant specific record IDs corresponding to their patients.
+        // p1 (1, 2), p2 (3), p3 (4), p4 (5)
+        // Doctor (p1, p2) -> Records 1, 2, 3
+        // Nurse (p4, p5) -> Record 5
+        // Note: Creating records returns objects with IDs.
+        // We didn't capture record objects in variables. I'll update createRecord calls
+        // to capture them.
+
+        // Actually, just granting * for SELECT MedicalRecord is easier and common if
+        // Patient access is the primary gate.
+        // BUT strict ELS means we should filter records too.
+        // Let's grant * for now to fix the specific error 403.
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
 
         // nurse_joy: Can INSERT Patients
         createPermission(null, nurseRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);

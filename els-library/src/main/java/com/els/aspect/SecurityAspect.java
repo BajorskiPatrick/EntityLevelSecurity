@@ -57,26 +57,23 @@ public class SecurityAspect {
             String operator = condition.operator();
 
             if ("NONE".equals(operator)) {
-                // Deny access completely
-                throw new SecurityException("Access Denied: You do not have permission to perform this action.");
+                // Deny access by filtering everything out, instead of throwing exception
+                // This allows returning empty lists for UI consistency
+                session.enableFilter("elsFilter").setParameterList("ids", java.util.Collections.singletonList(-1L));
+                filterEnabled = true;
+                return joinPoint.proceed();
             } else if ("ALL".equals(operator)) {
                 // Allow everything, do not enable any filter
                 return joinPoint.proceed();
             }
 
             // For INSERT, we expect either ALL or NONE.
-            // If we get here with IN/NOT IN for INSERT, it's a structural error in logic,
-            // but effectively means "allow specific IDs", which is weird for INSERT.
-            // Strictly blocking Partial Insert permissions if needed, but per spec
-            // "INSERT... user has access or no".
-            // So if we are here for INSERT, it implies partial access? Spec says "row
-            // ids... null", so partial shouldn't happen.
-            // We'll treat partial filters for INSERT as ineffective and thus deny/warn or
-            // just proceed (if filter ignored).
-            // Safer to block given the spec.
             if ("INSERT".equals(secure.action().name())) {
-                // Should have been handled by ALL or NONE above.
-                // If we have specific IDs, it contradicts the spec "row ids = null".
+                // If not ALL or NONE, it implies partial. Spec says 'row ids = null'.
+                // We treat partial inserts as Blocked (NONE) effectively if we reach here?
+                // Or we can just throw exception as it's a configuration error.
+                // Let's keep the exception for INSERT consistency check, but maybe relaxed if
+                // needed.
                 throw new SecurityException("Access Denied: Partial permissions not supported for INSERT.");
             }
 
@@ -84,14 +81,15 @@ public class SecurityAspect {
             if ("IN".equals(operator)) {
                 List<Object> ids = condition.ids();
                 if (ids.isEmpty()) {
-                    // Start of safety check. Should be NONE really.
-                    throw new SecurityException("Access Denied: Empty Allow List.");
+                    // Empty whitelist = Block All
+                    session.enableFilter("elsFilter").setParameterList("ids", java.util.Collections.singletonList(-1L));
+                    filterEnabled = true;
+                } else {
+                    session.enableFilter("elsFilter").setParameterList("ids", castIds(ids));
+                    filterEnabled = true;
                 }
-
-                session.enableFilter("elsFilter").setParameterList("ids", ids);
-                filterEnabled = true;
             } else if ("NOT IN".equals(operator)) {
-                session.enableFilter("elsBlacklistFilter").setParameterList("ids", condition.ids());
+                session.enableFilter("elsBlacklistFilter").setParameterList("ids", castIds(condition.ids()));
                 filterEnabled = true;
             }
 
@@ -101,6 +99,29 @@ public class SecurityAspect {
                 session.disableFilter("elsFilter");
                 session.disableFilter("elsBlacklistFilter"); // safe to disable even if not enabled
             }
+        }
+    }
+
+    private List<Object> castIds(List<Object> rawIds) {
+        if (rawIds == null || rawIds.isEmpty())
+            return rawIds;
+        // Attempt to convert strings to Long if they look like numbers
+        // This is a naive heuristic for this demo project where all IDs are Longs.
+        try {
+            return rawIds.stream()
+                    .map(id -> {
+                        if (id instanceof String s) {
+                            // Handle wildcard if leaks here, though should be handled by ALL operator check
+                            if ("*".equals(s))
+                                return -1L;
+                            return Long.valueOf(s);
+                        }
+                        return id;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (NumberFormatException e) {
+            // Fallback: return raw if parsing fails (maybe they ARE strings)
+            return rawIds;
         }
     }
 }

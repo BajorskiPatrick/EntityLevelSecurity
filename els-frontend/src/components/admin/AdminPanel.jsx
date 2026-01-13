@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axiosConfig';
 
-const AdminPanel = () => {
+const AdminPanel = ({ user }) => {
     const [activeTab, setActiveTab] = useState('permissions');
     const [permissions, setPermissions] = useState([]);
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
+
+    // Check if user is exactly ADMIN (assuming simplistic role check for frontend)
+    // The user object has roles array: [{name: "ADMIN", ...}]
+    const isAdmin = user?.roles?.some(r => r.name === 'ADMIN') || user?.username === 'admin';
 
     // --- Forms State ---
     // Permissions Form
@@ -67,11 +71,8 @@ const AdminPanel = () => {
     const handleCreateRole = async () => {
         try {
             const endpoint = roleForm.type === 'SIMPLE' ? '/admin/roles/simple' : '/admin/roles/composite';
-            await api.post(endpoint, { name: roleForm.name }); // Simple expects just name, Composite expects just name initially in basic implementation or use specific endpoint
-            // Note: The simple/composite endpoints might differ in DTO structure. Assuming name is passed in body as string or object.
-            // Checking backend: @RequestBody String name. So pass plain string? No, typically JSON. Let's send plain string if backend accepts, or object.
-            // Adjusting to send simple object map, backend DTO check needed. Assuming "name" field in body or @RequestBody String?
-            // Let's assume standard JSON { "name": "..." }
+            // Backend expects @RequestParam String name, so we must pass it as query param
+            await api.post(`${endpoint}?name=${encodeURIComponent(roleForm.name)}`);
             alert('Role Created');
             refreshAll();
         } catch (e) { alert(e.message); }
@@ -90,7 +91,9 @@ const AdminPanel = () => {
                 <h2>System Configuration</h2>
                 <div className="tabs">
                     <button className={activeTab === 'permissions' ? 'active' : ''} onClick={() => setActiveTab('permissions')}>Permissions</button>
-                    <button className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>Users & Roles</button>
+                    {isAdmin && (
+                        <button className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>Users & Roles</button>
+                    )}
                 </div>
             </div>
 
@@ -98,65 +101,71 @@ const AdminPanel = () => {
 
                 {/* --- PERMISSIONS TAB --- */}
                 {activeTab === 'permissions' && (
-                    <div className="admin-grid">
-                        <div className="card form-card">
-                            <h3>Grant Permission</h3>
+                    <div className={isAdmin ? "admin-grid" : "admin-grid-single"}>
+                        {isAdmin && (
+                            <div className="card form-card">
+                                <h3>Grant Permission</h3>
 
-                            <label>Target</label>
-                            <select value={permForm.targetType} onChange={e => setPermForm({ ...permForm, targetType: e.target.value })}>
-                                <option value="USER">User</option>
-                                <option value="ROLE">Role</option>
-                            </select>
+                                <label>Target</label>
+                                <select value={permForm.targetType} onChange={e => setPermForm({ ...permForm, targetType: e.target.value })}>
+                                    <option value="USER">User</option>
+                                    <option value="ROLE">Role</option>
+                                </select>
 
-                            {permForm.targetType === 'USER' ? (
-                                <select value={permForm.username} onChange={e => setPermForm({ ...permForm, username: e.target.value })}>
-                                    <option value="">Select User</option>
-                                    {users.map(u => <option key={u.id} value={u.username}>{u.username}</option>)}
-                                </select>
-                            ) : (
-                                <select value={permForm.roleId} onChange={e => setPermForm({ ...permForm, roleId: e.target.value })}>
-                                    <option value="">Select Role</option>
-                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name} ({r.type})</option>)}
-                                </select>
-                            )}
+                                {permForm.targetType === 'USER' ? (
+                                    <select value={permForm.username} onChange={e => setPermForm({ ...permForm, username: e.target.value })}>
+                                        <option value="">Select User</option>
+                                        {users.map(u => <option key={u.id} value={u.username}>{u.username}</option>)}
+                                    </select>
+                                ) : (
+                                    <select value={permForm.roleId} onChange={e => setPermForm({ ...permForm, roleId: e.target.value })}>
+                                        <option value="">Select Role</option>
+                                        {roles.map(r => <option key={r.id} value={r.id}>{r.name} ({r.type})</option>)}
+                                    </select>
+                                )}
 
-                            <label>Entity</label>
-                            <select value={permForm.entity} onChange={e => setPermForm({ ...permForm, entity: e.target.value })}>
-                                <option value="Patient">Patient</option>
-                                <option value="MedicalRecord">MedicalRecord</option>
-                                <option value="Department">Department</option>
-                            </select>
+                                <label>Entity</label>
+                                <select value={permForm.entity} onChange={e => setPermForm({ ...permForm, entity: e.target.value })}>
+                                    <option value="Patient">Patient</option>
+                                    <option value="MedicalRecord">MedicalRecord</option>
+                                    <option value="Department">Department</option>
+                                </select>
 
-                            <div className="row">
-                                <select value={permForm.action} onChange={e => setPermForm({ ...permForm, action: e.target.value })}>
-                                    <option value="SELECT">SELECT</option>
-                                    <option value="INSERT">INSERT</option>
-                                    <option value="UPDATE">UPDATE</option>
-                                    <option value="DELETE">DELETE</option>
-                                </select>
-                                <select value={permForm.accessType} onChange={e => setPermForm({ ...permForm, accessType: e.target.value })}>
-                                    <option value="WHITELIST">Allow (Whitelist)</option>
-                                    <option value="BLACKLIST">Deny (Blacklist)</option>
-                                </select>
+                                <div className="row">
+                                    <select value={permForm.action} onChange={e => setPermForm({ ...permForm, action: e.target.value })}>
+                                        <option value="SELECT">SELECT</option>
+                                        <option value="INSERT">INSERT</option>
+                                        <option value="UPDATE">UPDATE</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+                                    <select value={permForm.accessType} onChange={e => setPermForm({ ...permForm, accessType: e.target.value })}>
+                                        <option value="WHITELIST">Allow (Whitelist)</option>
+                                        <option value="BLACKLIST">Deny (Blacklist)</option>
+                                    </select>
+                                </div>
+
+                                <input placeholder="IDs (e.g. 1,2 or *)" value={permForm.rowIds} onChange={e => setPermForm({ ...permForm, rowIds: e.target.value })} />
+
+                                <button className="btn-primary" onClick={handleGrantPermission}>Grant</button>
                             </div>
+                        )}
 
-                            <input placeholder="IDs (e.g. 1,2 or *)" value={permForm.rowIds} onChange={e => setPermForm({ ...permForm, rowIds: e.target.value })} />
-
-                            <button className="btn-primary" onClick={handleGrantPermission}>Grant</button>
-                        </div>
-
-                        <div className="card list-card">
+                        <div className="card list-card" style={{ gridColumn: isAdmin ? 'auto' : '1 / -1' }}>
                             <h3>Existing Permissions</h3>
                             <table>
-                                <thead><tr><th>Who</th><th>What</th><th>How</th><th>IDs</th><th>Action</th></tr></thead>
+                                <thead><tr><th>Who</th><th>What</th><th>How</th><th>IDs</th>{isAdmin && <th>Action</th>}</tr></thead>
                                 <tbody>
                                     {permissions.map(p => (
                                         <tr key={p.id}>
                                             <td>{p.user ? `U: ${p.user.username}` : `R: ${p.role?.name}`}</td>
                                             <td>{p.entityName}.{p.action}</td>
-                                            <td>{p.accessType}</td>
+                                            <td>
+                                                <span className={`badge ${p.accessType}`}>{p.accessType}</span>
+                                            </td>
                                             <td>{p.rowIds}</td>
-                                            <td><button className="btn-danger small" onClick={() => handleRevokePermission(p.id)}>X</button></td>
+                                            {isAdmin && (
+                                                <td><button className="btn-danger small" onClick={() => handleRevokePermission(p.id)}>X</button></td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -166,7 +175,7 @@ const AdminPanel = () => {
                 )}
 
                 {/* --- USERS & ROLES TAB --- */}
-                {activeTab === 'users' && (
+                {activeTab === 'users' && isAdmin && (
                     <div className="admin-grid three-col">
                         {/* User Create */}
                         <div className="card form-card">
@@ -191,9 +200,9 @@ const AdminPanel = () => {
                             <button className="btn-primary" onClick={handleCreateRole}>Create Role</button>
                         </div>
 
-                        {/* Hierarchy */}
+                        {/* Hierarchy Link */}
                         <div className="card form-card">
-                            <h3>Role Hierarchy</h3>
+                            <h3>Link Roles</h3>
                             <label>Parent (Composite)</label>
                             <select value={roleForm.parentId} onChange={e => setRoleForm({ ...roleForm, parentId: e.target.value })}>
                                 <option value="">Select Parent</option>
@@ -206,6 +215,23 @@ const AdminPanel = () => {
                                 {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                             </select>
                             <button className="btn-primary" onClick={handleLinkRoles}>Link Roles</button>
+                        </div>
+
+                        {/* Role Visualizer */}
+                        <div className="card list-card" style={{ gridColumn: '1 / -1' }}>
+                            <h3>Role Hierarchy & Structure</h3>
+                            <div className="data-grid">
+                                {roles.map(r => (
+                                    <div key={r.id} className="card compact">
+                                        <h4>{r.name} <span className="tag">{r.type}</span></h4>
+                                        {r.children && r.children.length > 0 ? (
+                                            <ul>
+                                                {r.children.map(c => <li key={c.id}>Includes: {c.name}</li>)}
+                                            </ul>
+                                        ) : <p><i>No sub-roles</i></p>}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
