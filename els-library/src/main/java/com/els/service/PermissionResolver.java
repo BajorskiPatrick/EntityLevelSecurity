@@ -45,7 +45,7 @@ public class PermissionResolver {
         }
 
         // 3. Coordinate Strategies (Aggregation)
-        FilterCondition condition = aggregatePermissions(permissions);
+        FilterCondition condition = aggregatePermissions(permissions, action);
 
         // 4. Cache
         permissionCache.put(key, condition);
@@ -62,7 +62,26 @@ public class PermissionResolver {
         }
     }
 
-    private FilterCondition aggregatePermissions(List<Permission> permissions) {
+    private FilterCondition aggregatePermissions(List<Permission> permissions, Action action) {
+        // Special Handling for INSERT
+        // Project Spec: "Access type (WHITELIST/BLACKLIST) in case of an INSERT action
+        // determines whether the user has access or no".
+        // And "row ids ... in case of INSERT action equals to null".
+        if (action == Action.INSERT) {
+            // Logic: If there is ANY permission entry with WHITELIST access type, we ALLOW.
+            // If there is a BLACKLIST entry (or no entry), we DENY?
+            // Usually, security is "Deny by Default". So checks for any Whitelist.
+            boolean canInsert = permissions.stream()
+                    .anyMatch(p -> p.getAccessType() == AccessType.WHITELIST);
+
+            if (canInsert) {
+                return new FilterCondition("ALL", Collections.emptyList());
+            } else {
+                return new FilterCondition("NONE", Collections.emptyList());
+            }
+        }
+
+        // Standard Logic for SELECT / UPDATE / DELETE
         Set<Object> allowedIds = new HashSet<>();
         Set<Object> deniedIds = new HashSet<>();
         boolean hasWhitelist = false;
@@ -92,11 +111,21 @@ public class PermissionResolver {
                 return new FilterCondition("NOT IN", new ArrayList<>(deniedIds));
             }
             // Nothing defined: Deny All (empty IN list)
-            return new FilterCondition("IN", List.of()); // ID IN () -> False
+            // returning NONE explicitly is cleaner than empty IN list
+            return new FilterCondition("NONE", Collections.emptyList());
         }
 
         // Whitelist exists: Union of Allowed minus Denied
+        if (allowedIds.contains("*")) {
+            return new FilterCondition("ALL", Collections.emptyList());
+        }
+
         allowedIds.removeAll(deniedIds);
+
+        if (allowedIds.isEmpty()) {
+            return new FilterCondition("NONE", Collections.emptyList());
+        }
+
         return new FilterCondition("IN", new ArrayList<>(allowedIds));
     }
 

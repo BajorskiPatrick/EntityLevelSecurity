@@ -3,17 +3,20 @@ package com.els.manager;
 import com.els.domain.Permission;
 import com.els.event.PermissionUpdateEvent;
 import com.els.repository.PermissionRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class PermissionManager {
 
     private final PermissionRepository permissionRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+    public PermissionManager(PermissionRepository permissionRepository, ApplicationEventPublisher eventPublisher) {
+        this.permissionRepository = permissionRepository;
+        this.eventPublisher = eventPublisher;
+    }
 
     @Transactional
     public Permission savePermission(Permission permission) {

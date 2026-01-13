@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.List;
 
 @Aspect
@@ -54,25 +53,44 @@ public class SecurityAspect {
         boolean filterEnabled = false;
 
         try {
-            // "IN" Strategy
-            if ("IN".equals(condition.operator())) {
+            // NEW LOGIC: Strict Enforcement
+            String operator = condition.operator();
+
+            if ("NONE".equals(operator)) {
+                // Deny access completely
+                throw new SecurityException("Access Denied: You do not have permission to perform this action.");
+            } else if ("ALL".equals(operator)) {
+                // Allow everything, do not enable any filter
+                return joinPoint.proceed();
+            }
+
+            // For INSERT, we expect either ALL or NONE.
+            // If we get here with IN/NOT IN for INSERT, it's a structural error in logic,
+            // but effectively means "allow specific IDs", which is weird for INSERT.
+            // Strictly blocking Partial Insert permissions if needed, but per spec
+            // "INSERT... user has access or no".
+            // So if we are here for INSERT, it implies partial access? Spec says "row
+            // ids... null", so partial shouldn't happen.
+            // We'll treat partial filters for INSERT as ineffective and thus deny/warn or
+            // just proceed (if filter ignored).
+            // Safer to block given the spec.
+            if ("INSERT".equals(secure.action().name())) {
+                // Should have been handled by ALL or NONE above.
+                // If we have specific IDs, it contradicts the spec "row ids = null".
+                throw new SecurityException("Access Denied: Partial permissions not supported for INSERT.");
+            }
+
+            // FILTERING (Select, Update, Delete)
+            if ("IN".equals(operator)) {
                 List<Object> ids = condition.ids();
                 if (ids.isEmpty()) {
-                    // Empty IN list usually means "Deny All".
-                    // Hibernate filter parameter list cannot be empty.
-                    // Hack: Pass a dummy impossible ID like -1.
-                    ids = Collections.singletonList(-1L);
+                    // Start of safety check. Should be NONE really.
+                    throw new SecurityException("Access Denied: Empty Allow List.");
                 }
 
-                // We assume a standard filter name "elsFilter" is defined on the entity
-                // with a parameter "ids".
-                // @FilterDef(name="elsFilter", parameters=@ParamDef(name="ids",
-                // type=Long.class))
-                // @Filter(name="elsFilter", condition="id IN (:ids)")
                 session.enableFilter("elsFilter").setParameterList("ids", ids);
                 filterEnabled = true;
-            } else if ("NOT IN".equals(condition.operator())) {
-                // Similar logic, if we had a blacklist filter
+            } else if ("NOT IN".equals(operator)) {
                 session.enableFilter("elsBlacklistFilter").setParameterList("ids", condition.ids());
                 filterEnabled = true;
             }
