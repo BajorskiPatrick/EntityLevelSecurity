@@ -75,4 +75,49 @@ public class AdminController {
         permissionManager.deletePermission(id);
         return ResponseEntity.ok().build();
     }
+
+    // --- User & Role Management ---
+
+    @PostMapping("/users")
+    public User createUser(@RequestBody User user) {
+        // In a real app, password should be encoded
+        return userRepository.save(user);
+    }
+
+    @PostMapping("/roles/simple")
+    public ResponseEntity<Role> createSimpleRole(@RequestParam String name) {
+        com.els.domain.SimpleRole role = new com.els.domain.SimpleRole();
+        role.setName(name);
+        return ResponseEntity.ok(roleRepository.save(role));
+    }
+
+    @PostMapping("/roles/composite")
+    public ResponseEntity<Role> createCompositeRole(@RequestParam String name) {
+        com.els.domain.CompositeRole role = new com.els.domain.CompositeRole();
+        role.setName(name);
+        return ResponseEntity.ok(roleRepository.save(role));
+    }
+
+    @PostMapping("/users/{userId}/roles/{roleId}")
+    public ResponseEntity<User> assignRoleToUser(@PathVariable Long userId, @PathVariable Long roleId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        Role role = roleRepository.findById(roleId).orElseThrow(() -> new RuntimeException("Role not found"));
+
+        user.getRoles().add(role);
+        return ResponseEntity.ok(userRepository.save(user));
+    }
+
+    @PostMapping("/roles/{parentId}/children/{childId}")
+    public ResponseEntity<Role> addChildToRole(@PathVariable Long parentId, @PathVariable Long childId) {
+        Role parent = roleRepository.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Parent Role not found"));
+        Role child = roleRepository.findById(childId).orElseThrow(() -> new RuntimeException("Child Role not found"));
+
+        if (parent instanceof com.els.domain.CompositeRole compositeRole) {
+            compositeRole.addChild(child);
+            return ResponseEntity.ok(roleRepository.save(compositeRole));
+        } else {
+            return ResponseEntity.badRequest().build(); // Cannot add child to non-composite
+        }
+    }
 }

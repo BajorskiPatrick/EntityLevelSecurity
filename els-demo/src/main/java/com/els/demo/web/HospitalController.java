@@ -38,4 +38,26 @@ public class HospitalController {
         }
         return hospitalService.getAllMedicalRecords();
     }
+
+    @PostMapping("/patients")
+    public Patient addPatient(@RequestBody Patient patient) {
+        return hospitalService.addPatient(patient);
+    }
+
+    @DeleteMapping("/patients/{id}")
+    public void dischargePatient(@PathVariable Long id) {
+        hospitalService.dischargePatient(id);
+    }
+
+    @PostMapping("/records")
+    public MedicalRecord addMedicalRecord(@RequestBody MedicalRecord record) {
+        return hospitalService.addMedicalRecord(record);
+    }
+
+    @PutMapping("/records/{id}")
+    public MedicalRecord updateMedicalRecord(@PathVariable Long id, @RequestBody MedicalRecord record) {
+        // Ensure ID consistency
+        record.setId(id);
+        return hospitalService.updateMedicalRecord(record);
+    }
 }

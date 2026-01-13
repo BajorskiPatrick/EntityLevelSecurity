@@ -56,4 +56,34 @@ public class HospitalService {
     public List<MedicalRecord> getMedicalRecordsByPatient(Long patientId) {
         return medicalRecordRepository.findByPatientId(patientId);
     }
+
+    // --- Write Operations (INSERT) ---
+
+    @Secure(entity = "Patient", action = Action.INSERT)
+    @Transactional
+    public Patient addPatient(Patient patient) {
+        return patientRepository.save(patient);
+    }
+
+    @Secure(entity = "MedicalRecord", action = Action.INSERT)
+    @Transactional
+    public MedicalRecord addMedicalRecord(MedicalRecord record) {
+        return medicalRecordRepository.save(record);
+    }
+
+    // --- Write Operations (UPDATE) ---
+
+    @Secure(entity = "MedicalRecord", action = Action.UPDATE)
+    @Transactional
+    public MedicalRecord updateMedicalRecord(MedicalRecord record) {
+        return medicalRecordRepository.save(record);
+    }
+
+    // --- Write Operations (DELETE) ---
+
+    @Secure(entity = "Patient", action = Action.DELETE)
+    @Transactional
+    public void dischargePatient(Long patientId) {
+        patientRepository.deleteById(patientId);
+    }
 }
