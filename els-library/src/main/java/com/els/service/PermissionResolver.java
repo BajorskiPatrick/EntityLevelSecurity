@@ -82,6 +82,11 @@ public class PermissionResolver {
         // determines whether the user has access or no".
         // And "row ids ... in case of INSERT action equals to null".
         if (action == Action.INSERT) {
+            boolean hasBlacklist = permissions.stream()
+                    .anyMatch(p -> p.getAccessType() == AccessType.BLACKLIST);
+            if(hasBlacklist){
+                return new FilterCondition("NONE", Collections.emptyList());
+            }
             boolean canInsert = permissions.stream()
                     .anyMatch(p -> p.getAccessType() == AccessType.WHITELIST);
             return canInsert
