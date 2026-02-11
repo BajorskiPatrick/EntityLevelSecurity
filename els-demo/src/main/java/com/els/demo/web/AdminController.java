@@ -94,7 +94,13 @@ public class AdminController {
     // ============================================
 
     @PostMapping("/permissions")
-    public ResponseEntity<Permission> createPermission(@RequestBody PermissionRequest request) {
+    public ResponseEntity<?> createPermission(@RequestBody PermissionRequest request) {
+        // Validate rowIds format
+        String validationError = validateRowIds(request.getRowIds());
+        if (validationError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "INVALID_FORMAT", "message", validationError));
+        }
+
         // Expand ranges: "1-5,8" → "1,2,3,4,5,8"
         String expandedIds = expandRanges(request.getRowIds());
 
@@ -238,6 +244,47 @@ public class AdminController {
      * "*" → "*"
      * null or blank → null (for INSERT permissions)
      */
+    /**
+     * Validates rowIds format. Returns error message or null if valid.
+     * Valid: null, "", "*", "1,2,3", "1-5", "1,3-7,10"
+     * Invalid: "abc", "1-", "-5", "1,,2", "1-2-3"
+     */
+    static String validateRowIds(String input) {
+        if (input == null || input.isBlank())
+            return null; // empty is valid (INSERT)
+        input = input.trim();
+        if ("*".equals(input))
+            return null; // wildcard is valid
+
+        for (String part : input.split(",")) {
+            part = part.trim();
+            if (part.isEmpty())
+                continue;
+            if ("*".equals(part))
+                continue;
+
+            if (part.contains("-")) {
+                String[] bounds = part.split("-", 2);
+                if (bounds.length != 2 || bounds[0].trim().isEmpty() || bounds[1].trim().isEmpty()) {
+                    return "Invalid range format: '" + part + "'. Use format: start-end (e.g. 1-10)";
+                }
+                try {
+                    Long.parseLong(bounds[0].trim());
+                    Long.parseLong(bounds[1].trim());
+                } catch (NumberFormatException e) {
+                    return "Range contains non-numeric values: '" + part + "'";
+                }
+            } else {
+                try {
+                    Long.parseLong(part);
+                } catch (NumberFormatException e) {
+                    return "Invalid ID: '" + part + "'. IDs must be numbers, ranges (1-10), or wildcard (*)";
+                }
+            }
+        }
+        return null;
+    }
+
     static String expandRanges(String input) {
         if (input == null || input.isBlank())
             return null;
@@ -251,19 +298,14 @@ public class AdminController {
             if (part.isEmpty())
                 continue;
             if ("*".equals(part))
-                return "*"; // wildcard overrides all
+                return "*";
 
             if (part.contains("-")) {
-                // Range: "3-7" → 3,4,5,6,7
                 String[] bounds = part.split("-", 2);
-                try {
-                    long start = Long.parseLong(bounds[0].trim());
-                    long end = Long.parseLong(bounds[1].trim());
-                    for (long i = Math.min(start, end); i <= Math.max(start, end); i++) {
-                        result.add(String.valueOf(i));
-                    }
-                } catch (NumberFormatException e) {
-                    result.add(part); // keep as-is if not parseable
+                long start = Long.parseLong(bounds[0].trim());
+                long end = Long.parseLong(bounds[1].trim());
+                for (long i = Math.min(start, end); i <= Math.max(start, end); i++) {
+                    result.add(String.valueOf(i));
                 }
             } else {
                 result.add(part);

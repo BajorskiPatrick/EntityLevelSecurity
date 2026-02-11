@@ -14,6 +14,7 @@ const AdminPanel = ({ user }) => {
     const [permForm, setPermForm] = useState({
         targetType: 'USER', username: '', roleId: '', entity: 'Patient', action: 'SELECT', accessType: 'WHITELIST', rowIds: ''
     });
+    const [idsError, setIdsError] = useState('');
     const [userForm, setUserForm] = useState({ username: '', password: 'password', roleId: '' });
     const [roleForm, setRoleForm] = useState({ name: '', type: 'SIMPLE', parentId: '', childId: '' });
 
@@ -30,6 +31,39 @@ const AdminPanel = ({ user }) => {
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    // --- Validation ---
+    const validateRowIds = (value) => {
+        if (!value || value.trim() === '') return ''; // empty is OK (INSERT)
+        const trimmed = value.trim();
+        if (trimmed === '*') return '';
+
+        const parts = trimmed.split(',');
+        for (const raw of parts) {
+            const part = raw.trim();
+            if (part === '') continue;
+            if (part === '*') continue;
+            if (part.includes('-')) {
+                const bounds = part.split('-');
+                if (bounds.length !== 2 || bounds[0].trim() === '' || bounds[1].trim() === '') {
+                    return `Invalid range: "${part}"`;
+                }
+                if (isNaN(bounds[0].trim()) || isNaN(bounds[1].trim())) {
+                    return `Non-numeric range: "${part}"`;
+                }
+            } else {
+                if (isNaN(part)) {
+                    return `Invalid ID: "${part}" — must be a number`;
+                }
+            }
+        }
+        return '';
+    };
+
+    const handleRowIdsChange = (value) => {
+        setPermForm({ ...permForm, rowIds: value });
+        setIdsError(validateRowIds(value));
     };
 
     // --- Handlers ---
@@ -208,13 +242,18 @@ const AdminPanel = ({ user }) => {
                                 <input
                                     placeholder="IDs: 1,2,3 or 1-10 or *"
                                     value={permForm.rowIds}
-                                    onChange={e => setPermForm({ ...permForm, rowIds: e.target.value })}
+                                    onChange={e => handleRowIdsChange(e.target.value)}
+                                    className={idsError ? 'input-error' : ''}
                                 />
-                                <span className="helper-text">
-                                    Single: <code>1,2,3</code> · Range: <code>1-100</code> · All: <code>*</code> · Mix: <code>1,3-7,10</code> · Empty for INSERT
-                                </span>
+                                {idsError ? (
+                                    <span className="helper-text helper-error">{idsError}</span>
+                                ) : (
+                                    <span className="helper-text">
+                                        Single: <code>1,2,3</code> · Range: <code>1-100</code> · All: <code>*</code> · Mix: <code>1,3-7,10</code> · Empty for INSERT
+                                    </span>
+                                )}
 
-                                <button className="btn-primary" onClick={handleGrantPermission}>Grant</button>
+                                <button className="btn-primary" onClick={handleGrantPermission} disabled={!!idsError}>Grant</button>
                             </div>
                         )}
 

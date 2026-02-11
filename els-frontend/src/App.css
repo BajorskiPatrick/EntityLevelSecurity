@@ -683,3 +683,19 @@ tr:last-child td {
   font-family: 'Fira Code', 'Cascadia Code', monospace;
   color: var(--primary);
 }
+
+/* --- Input Validation Error --- */
+.input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+}
+
+.helper-error {
+  color: var(--danger) !important;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
