@@ -583,3 +583,103 @@ tr:last-child td {
     opacity: 1;
   }
 }
+
+/* --- ID Chips --- */
+.id-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.id-chip:hover {
+  background: #e2e8f0;
+}
+
+.id-chip-all {
+  background: var(--success-bg);
+  color: #065f46;
+  border-color: #a7f3d0;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.id-chip-empty {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-style: italic;
+}
+
+.id-chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  margin-left: 0.1rem;
+  transition: color 0.15s;
+}
+
+.id-chip-remove:hover {
+  color: var(--danger);
+}
+
+/* --- Access Type Badge --- */
+.access-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.access-badge.WHITELIST {
+  background: var(--success-bg);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.access-badge.BLACKLIST {
+  background: var(--danger-bg);
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* --- Helper Text --- */
+.helper-text {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: -0.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.helper-text code {
+  background: #f1f5f9;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.72rem;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  color: var(--primary);
+}

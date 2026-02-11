@@ -3,22 +3,18 @@ import api from '../../api/axiosConfig';
 
 const AdminPanel = ({ user }) => {
     const [activeTab, setActiveTab] = useState('permissions');
-    const [permissions, setPermissions] = useState([]);
+    const [groupedPermissions, setGroupedPermissions] = useState([]);
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [toast, setToast] = useState(null);
 
-    // Check if user is exactly ADMIN (assuming simplistic role check for frontend)
-    // The user object has roles array: [{name: "ADMIN", ...}]
     const isAdmin = user?.roles?.some(r => r.name === 'ADMIN') || user?.username === 'admin';
 
     // --- Forms State ---
-    // Permissions Form
     const [permForm, setPermForm] = useState({
         targetType: 'USER', username: '', roleId: '', entity: 'Patient', action: 'SELECT', accessType: 'WHITELIST', rowIds: ''
     });
-    // User Form
     const [userForm, setUserForm] = useState({ username: '', password: 'password', roleId: '' });
-    // Role Form
     const [roleForm, setRoleForm] = useState({ name: '', type: 'SIMPLE', parentId: '', childId: '' });
 
     useEffect(() => {
@@ -26,9 +22,14 @@ const AdminPanel = ({ user }) => {
     }, []);
 
     const refreshAll = () => {
-        api.get('/admin/permissions').then(res => setPermissions(res.data));
-        api.get('/admin/users').then(res => setUsers(res.data));
-        api.get('/admin/roles').then(res => setRoles(res.data));
+        api.get('/admin/permissions/grouped').then(res => setGroupedPermissions(res.data)).catch(() => { });
+        api.get('/admin/users').then(res => setUsers(res.data)).catch(() => { });
+        api.get('/admin/roles').then(res => setRoles(res.data)).catch(() => { });
+    };
+
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3000);
     };
 
     // --- Handlers ---
@@ -38,55 +39,115 @@ const AdminPanel = ({ user }) => {
             ...permForm,
             username: permForm.targetType === 'USER' ? permForm.username : null,
             roleId: permForm.targetType === 'ROLE' ? permForm.roleId : null,
-            entityName: permForm.entity // Backend expects entityName
+            entityName: permForm.entity
         };
         try {
             await api.post('/admin/permissions', payload);
-            alert('Permission Granted');
+            showToast('Permission granted');
             refreshAll();
-        } catch (e) { alert(e.message); }
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
     };
 
-    const handleRevokePermission = async (id) => {
+    const handleRevokePermission = async (permissionIds) => {
+        if (!confirm('Delete this entire permission rule?')) return;
         try {
-            await api.delete(`/admin/permissions/${id}`);
+            for (const id of permissionIds) {
+                await api.delete(`/admin/permissions/${id}`);
+            }
+            showToast('Permission revoked');
             refreshAll();
-        } catch (e) { alert(e.message); }
-    }
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    };
+
+    const handleRemoveId = async (permissionIds, idToRemove) => {
+        try {
+            // Try removing from the first permission that has this ID
+            for (const pid of permissionIds) {
+                await api.delete(`/admin/permissions/${pid}/ids`, {
+                    data: { idsToRemove: idToRemove }
+                });
+            }
+            refreshAll();
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    };
 
     const handleCreateUser = async () => {
         try {
-            // 1. Create User
             const res = await api.post('/admin/users', { username: userForm.username, password: userForm.password });
             const newUser = res.data;
-            // 2. Assign Role if selected
             if (userForm.roleId) {
                 await api.post(`/admin/users/${newUser.id}/roles/${userForm.roleId}`);
             }
-            alert('User Created');
+            showToast('User created');
             refreshAll();
-        } catch (e) { alert(e.message); }
-    }
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    };
 
     const handleCreateRole = async () => {
         try {
             const endpoint = roleForm.type === 'SIMPLE' ? '/admin/roles/simple' : '/admin/roles/composite';
-            // Backend expects @RequestParam String name, so we must pass it as query param
             await api.post(`${endpoint}?name=${encodeURIComponent(roleForm.name)}`);
-            alert('Role Created');
+            showToast('Role created');
             refreshAll();
-        } catch (e) { alert(e.message); }
-    }
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    };
 
     const handleLinkRoles = async () => {
         try {
             await api.post(`/admin/roles/${roleForm.parentId}/children/${roleForm.childId}`);
-            alert('Roles Linked');
-        } catch (e) { alert(e.message); }
-    }
+            showToast('Roles linked');
+            refreshAll();
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    };
+
+    // --- ID Chips Renderer ---
+    const renderIdChips = (group) => {
+        const { ids, permissionIds } = group;
+        if (!ids || ids.length === 0) {
+            return <span className="id-chip id-chip-empty">—</span>;
+        }
+        if (ids.length === 1 && ids[0] === '*') {
+            return <span className="id-chip id-chip-all">ALL ✱</span>;
+        }
+        return (
+            <div className="id-chips-container">
+                {ids.map(id => (
+                    <span key={id} className="id-chip">
+                        {id}
+                        {isAdmin && (
+                            <button
+                                className="id-chip-remove"
+                                onClick={() => handleRemoveId(permissionIds, id)}
+                                title={`Remove ID ${id}`}
+                            >×</button>
+                        )}
+                    </span>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className="panel admin-panel">
+            {toast && (
+                <div className={`toast toast-${toast.type}`}>
+                    <span>{toast.msg}</span>
+                    <button className="toast-close" onClick={() => setToast(null)}>×</button>
+                </div>
+            )}
+
             <div className="panel-header">
                 <h2>System Configuration</h2>
                 <div className="tabs">
@@ -144,7 +205,14 @@ const AdminPanel = ({ user }) => {
                                     </select>
                                 </div>
 
-                                <input placeholder="IDs (e.g. 1,2 or *)" value={permForm.rowIds} onChange={e => setPermForm({ ...permForm, rowIds: e.target.value })} />
+                                <input
+                                    placeholder="IDs: 1,2,3 or 1-10 or *"
+                                    value={permForm.rowIds}
+                                    onChange={e => setPermForm({ ...permForm, rowIds: e.target.value })}
+                                />
+                                <span className="helper-text">
+                                    Single: <code>1,2,3</code> · Range: <code>1-100</code> · All: <code>*</code> · Mix: <code>1,3-7,10</code> · Empty for INSERT
+                                </span>
 
                                 <button className="btn-primary" onClick={handleGrantPermission}>Grant</button>
                             </div>
@@ -155,16 +223,18 @@ const AdminPanel = ({ user }) => {
                             <table>
                                 <thead><tr><th>Who</th><th>What</th><th>How</th><th>IDs</th>{isAdmin && <th>Action</th>}</tr></thead>
                                 <tbody>
-                                    {permissions.map(p => (
-                                        <tr key={p.id}>
-                                            <td>{p.user ? `U: ${p.user.username}` : `R: ${p.role?.name}`}</td>
-                                            <td>{p.entityName}.{p.action}</td>
+                                    {groupedPermissions.map((g, idx) => (
+                                        <tr key={idx}>
+                                            <td>{g.who}</td>
+                                            <td>{g.entityName}.{g.action}</td>
                                             <td>
-                                                <span className={`badge ${p.accessType}`}>{p.accessType}</span>
+                                                <span className={`access-badge ${g.accessType}`}>{g.accessType}</span>
                                             </td>
-                                            <td>{p.rowIds}</td>
+                                            <td>{renderIdChips(g)}</td>
                                             {isAdmin && (
-                                                <td><button className="btn-danger small" onClick={() => handleRevokePermission(p.id)}>X</button></td>
+                                                <td>
+                                                    <button className="btn-danger small" onClick={() => handleRevokePermission(g.permissionIds)}>✕</button>
+                                                </td>
                                             )}
                                         </tr>
                                     ))}
