@@ -5,6 +5,7 @@ import com.els.context.SecurityContext;
 import com.els.domain.Action;
 import com.els.domain.User;
 import com.els.service.PermissionResolver;
+import com.els.strategies.AccessStrategy;
 import com.els.strategies.AccessStrategy.FilterCondition;
 import jakarta.persistence.EntityManager;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -16,9 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -26,12 +25,14 @@ import java.util.stream.Collectors;
  * and enforces Entity Level Security based on resolved permissions.
  *
  * <ul>
- * <li><b>SELECT</b> – uses Hibernate filters (IN / NOT IN) to restrict query
+ * <li><b>SELECT</b> – uses Hibernate filters (delegated to AccessStrategy) to
+ * restrict query
  * results</li>
  * <li><b>INSERT</b> – table-level check: either allowed (ALL) or denied
  * (NONE)</li>
- * <li><b>UPDATE / DELETE</b> – row-level check: extracts entity ID from method
- * arguments and verifies it against the resolved permission set</li>
+ * <li><b>UPDATE / DELETE</b> – row-level check: delegates to
+ * AccessStrategy.isIdPermitted()
+ * to verify access</li>
  * </ul>
  */
 @Aspect
@@ -43,12 +44,23 @@ public class SecurityAspect {
     private final PermissionResolver permissionResolver;
     private final SecurityContext securityContext;
     private final EntityManager entityManager;
+    private final Map<String, AccessStrategy> strategyByOperator;
 
     public SecurityAspect(PermissionResolver permissionResolver, SecurityContext securityContext,
-            EntityManager entityManager) {
+            EntityManager entityManager, Map<String, AccessStrategy> strategiesByName) {
         this.permissionResolver = permissionResolver;
         this.securityContext = securityContext;
         this.entityManager = entityManager;
+
+        // Build operator → strategy mapping for runtime delegation
+        this.strategyByOperator = new HashMap<>();
+        strategiesByName.forEach((beanName, strategy) -> {
+            if ("whitelistStrategy".equalsIgnoreCase(beanName)) {
+                this.strategyByOperator.put("IN", strategy);
+            } else if ("blacklistStrategy".equalsIgnoreCase(beanName)) {
+                this.strategyByOperator.put("NOT IN", strategy);
+            }
+        });
     }
 
     @Around("@annotation(secure)")
@@ -79,7 +91,7 @@ public class SecurityAspect {
         }
     }
 
-    // ---- SELECT: Hibernate filter-based row filtering ----
+    // ---- SELECT: Strategy-driven Hibernate filter application ----
 
     private Object handleSelect(ProceedingJoinPoint joinPoint, FilterCondition condition) throws Throwable {
         String operator = condition.operator();
@@ -88,26 +100,27 @@ public class SecurityAspect {
 
         try {
             if ("NONE".equals(operator)) {
-                // Return empty result set via impossible filter
+                // Deny all: activate filter with impossible ID
                 session.enableFilter("elsFilter")
                         .setParameterList("ids", Collections.singletonList(-1L));
                 filterEnabled = true;
-            } else if ("IN".equals(operator)) {
-                List<Object> ids = condition.ids();
-                if (ids.isEmpty()) {
-                    session.enableFilter("elsFilter")
-                            .setParameterList("ids", Collections.singletonList(-1L));
-                } else {
-                    session.enableFilter("elsFilter")
-                            .setParameterList("ids", castToLongs(ids));
+            } else if ("ALL".equals(operator)) {
+                // Allow all: no filter needed
+            } else {
+                // "IN" or "NOT IN": delegate filter activation to the strategy
+                AccessStrategy strategy = strategyByOperator.get(operator);
+                if (strategy != null) {
+                    List<Long> longIds = castToLongs(condition.ids());
+                    if (longIds.isEmpty()) {
+                        session.enableFilter("elsFilter")
+                                .setParameterList("ids", Collections.singletonList(-1L));
+                    } else {
+                        session.enableFilter(strategy.getFilterName())
+                                .setParameterList("ids", longIds);
+                    }
+                    filterEnabled = true;
                 }
-                filterEnabled = true;
-            } else if ("NOT IN".equals(operator)) {
-                session.enableFilter("elsBlacklistFilter")
-                        .setParameterList("ids", castToLongs(condition.ids()));
-                filterEnabled = true;
             }
-            // "ALL" – no filter needed
 
             return joinPoint.proceed();
         } finally {
@@ -130,7 +143,7 @@ public class SecurityAspect {
         throw new SecurityException("Access Denied: INSERT not permitted on this entity.");
     }
 
-    // ---- UPDATE / DELETE: row-level ID validation ----
+    // ---- UPDATE / DELETE: Strategy-driven row-level access check ----
 
     private Object handleUpdateOrDelete(ProceedingJoinPoint joinPoint, FilterCondition condition,
             Action action, String entityName) throws Throwable {
@@ -152,18 +165,18 @@ public class SecurityAspect {
                     "Access Denied: Cannot determine target entity ID for " + action + ".");
         }
 
+        // Delegate row-level access check to the strategy
+        AccessStrategy strategy = strategyByOperator.get(operator);
+        if (strategy == null) {
+            throw new SecurityException(
+                    "Access Denied: No strategy found for operator " + operator + ".");
+        }
+
         Set<Long> permittedIds = condition.ids().stream()
                 .map(this::toLong)
                 .collect(Collectors.toSet());
 
-        boolean allowed;
-        if ("IN".equals(operator)) {
-            allowed = permittedIds.contains(targetId);
-        } else if ("NOT IN".equals(operator)) {
-            allowed = !permittedIds.contains(targetId);
-        } else {
-            allowed = false;
-        }
+        boolean allowed = strategy.isIdPermitted(targetId, permittedIds);
 
         if (!allowed) {
             log.warn("ELS DENIED | User tried to {} {} id={} – not in allowed set.",

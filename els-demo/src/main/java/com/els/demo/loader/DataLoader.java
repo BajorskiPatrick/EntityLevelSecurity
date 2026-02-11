@@ -166,13 +166,14 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void createPermission(User user, Role role, String entity, Action action, AccessType type, String ids) {
-        Permission p = new Permission();
-        p.setUser(user);
-        p.setRole(role);
-        p.setEntityName(entity);
-        p.setAction(action);
-        p.setAccessType(type);
-        p.setRowIds(ids);
+        Permission p = Permission.builder()
+                .user(user)
+                .role(role)
+                .entity(entity)
+                .action(action)
+                .accessType(type)
+                .rowIds(ids)
+                .build();
         permissionManager.savePermission(p);
     }
 }

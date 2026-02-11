@@ -216,11 +216,12 @@ sequenceDiagram
     else Cache miss
         Resolver->>DB: findByUserAndEntityNameAndAction()
         Resolver->>DB: findByRoles(effectiveRoles)
-        Resolver->>Resolver: aggregatePermissions()
+        Resolver->>Resolver: applyStrategy() → delegacja do WhitelistStrategy/BlacklistStrategy
         Resolver->>Cache: put(key, condition)
     end
     Resolver-->>Aspect: FilterCondition{operator="IN", ids=[1,2]}
-    Aspect->>Filter: session.enableFilter("elsFilter")<br/>.setParameterList("ids", [1,2])
+    Aspect->>Aspect: resolveStrategy("IN") → WhitelistStrategy
+    Aspect->>Filter: session.enableFilter(strategy.getFilterName())<br/>.setParameterList("ids", [1,2])
     Aspect->>Service: joinPoint.proceed()
     Service->>DB: SELECT * FROM patients<br/>WHERE id IN (1,2)
     DB-->>Service: [Patient#1, Patient#2]
@@ -245,7 +246,7 @@ sequenceDiagram
     Aspect->>Resolver: resolve(user, "Patient", DELETE)
     Resolver-->>Aspect: FilterCondition{operator="IN", ids=[1,2]}
     Aspect->>Aspect: extractEntityId() → 5
-    Aspect->>Aspect: 5 ∈ {1,2}? → NIE
+    Aspect->>Aspect: strategy.isIdPermitted(5, {1,2}) → false
     Aspect-->>Client: throw SecurityException<br/>"Access Denied: DELETE not permitted<br/>on Patient id=5"
 ```
 
@@ -320,14 +321,14 @@ package com.els.demo.domain;
 public class Patient { ... }
 ```
 
-Aspekt aktywuje odpowiedni filtr przed wywołaniem metody, a deaktywuje go w bloku `finally`:
+Aspekt **deleguje aktywację filtra do strategii** — wywołuje `strategy.getFilterName()`, aby uzyskać nazwę odpowiedniego filtra Hibernate. Deaktywacja filtrów odbywa się w bloku `finally`:
 
-| FilterCondition | Aktywowany filtr | Efekt SQL |
-|----------------|-----------------|-----------|
-| `ALL` | żaden | `SELECT * FROM patients` (bez filtra) |
-| `NONE` | `elsFilter` z `ids=[-1]` | `WHERE id IN (-1)` → puste wyniki |
-| `IN [1,2,3]` | `elsFilter` z `ids=[1,2,3]` | `WHERE id IN (1,2,3)` |
-| `NOT IN [5]` | `elsBlacklistFilter` z `ids=[5]` | `WHERE id NOT IN (5)` |
+| FilterCondition | Strategia | `getFilterName()` | Efekt SQL |
+|----------------|-----------|-------------------|-----------|
+| `ALL` | — | — | `SELECT * FROM patients` (bez filtra) |
+| `NONE` | — | — | `WHERE id IN (-1)` → puste wyniki |
+| `IN [1,2,3]` | `WhitelistStrategy` | `"elsFilter"` | `WHERE id IN (1,2,3)` |
+| `NOT IN [5]` | `BlacklistStrategy` | `"elsBlacklistFilter"` | `WHERE id NOT IN (5)` |
 
 > **Technikalia: operator `NONE`** — zamiast zwracać pustą listę programowo, ELS ustawia filtr `IN (-1)` (ID = -1 nigdy nie istnieje), co powoduje że Hibernate zwraca pusty resultset. Dzięki temu zachowana jest spójność: zawsze idzie zapytanie do bazy, bo ręcznie zwrócona pusta lista ominęłaby transakcję i mogła prowadzić do side-effectów.
 
@@ -362,16 +363,16 @@ Method getIdMethod = firstArg.getClass().getMethod("getId");
 Object idValue = getIdMethod.invoke(firstArg);
 ```
 
-Walidacja:
+Walidacja odbywa się przez **delegację do strategii** — aspekt wywołuje `strategy.isIdPermitted(targetId, permittedIds)`:
 
-| Operator | Logika | Przykład |
-|----------|--------|---------|
-| `ALL` | Zawsze dozwolone | Admin z `WHITELIST *` |
-| `NONE` | Zawsze zabronione | Brak uprawnień |
-| `IN [1,2,3]` | `targetId ∈ {1,2,3}?` | Doctor może UPDATE pacjenta 1, ale nie 5 |
-| `NOT IN [5]` | `targetId ∉ {5}?` | Blacklist: nie pozwalaj na modyfikację pacjenta 5 |
+| Operator | Strategia | `isIdPermitted()` | Przykład |
+|----------|-----------|-------------------|---------|
+| `ALL` | — | — (zawsze dozwolone) | Admin z `WHITELIST *` |
+| `NONE` | — | — (zawsze zabronione) | Brak uprawnień |
+| `IN [1,2,3]` | `WhitelistStrategy` | `ids.contains(targetId)` | Doctor może UPDATE pacjenta 1, ale nie 5 |
+| `NOT IN [5]` | `BlacklistStrategy` | `!ids.contains(targetId)` | Blacklist: nie pozwalaj na modyfikację pacjenta 5 |
 
-Jeśli walidacja nie przechodzi → `throw SecurityException("Access Denied: DELETE not permitted on Patient id=5.")`.
+Jeśli `strategy.isIdPermitted()` zwraca `false` → `throw SecurityException("Access Denied: DELETE not permitted on Patient id=5.")`.
 
 ---
 
@@ -440,7 +441,7 @@ Dzięki temu `dr_house` (który ma rolę `HEAD_DOCTOR`) efektywnie posiada upraw
 
 ## Hierarchia decyzyjna
 
-Agregacja uprawnień (`aggregatePermissions`) to najważniejszy algorytm w systemie. Zbiera wszystkie uprawnienia (z user-specific i role-specific) do dwóch zbiorów i podejmuje decyzję w ściśle określonej kolejności priorytetów.
+Agregacja uprawnień (`aggregatePermissions`) to najważniejszy algorytm w systemie. Zbiera wszystkie uprawnienia (z user-specific i role-specific), **grupuje je po `AccessType`**, a następnie **deleguje generowanie warunków do odpowiednich strategii** (`WhitelistStrategy` / `BlacklistStrategy`) za pomocą metody `applyStrategy()`. Wyniki z obu strategii są następnie łączone w ściśle określonej kolejności priorytetów.
 
 ### Dla akcji SELECT / UPDATE / DELETE
 
@@ -574,19 +575,39 @@ ELS wykorzystuje następujące wzorce projektowe:
 
 ### 1. Strategy Pattern — `AccessStrategy`
 
+Interfejs definiuje trzy metody, z których każda enkapsuluje odrębną logikę behawioralną zależną od typu dostępu:
+
 ```java
 public interface AccessStrategy {
     FilterCondition generateCondition(List<Object> rowIds);
+    String getFilterName();
+    boolean isIdPermitted(Long targetId, Set<Long> permittedIds);
     record FilterCondition(String operator, List<Object> ids) {}
 }
 ```
 
-Dwie implementacje:
+Dwie implementacje (`@Component`, wstrzykiwane przez DI):
 
-| Strategia | Generowany operator | Efekt |
-|-----------|-------------------|-------|
-| `WhitelistStrategy` | `"IN"` | `WHERE id IN (ids)` |
-| `BlacklistStrategy` | `"NOT IN"` | `WHERE id NOT IN (ids)` |
+| Metoda | `WhitelistStrategy` | `BlacklistStrategy` |
+|--------|---------------------|---------------------|
+| `generateCondition()` | `*` → `ALL`, inaczej `IN` | `*` → `NONE`, inaczej `NOT IN` |
+| `getFilterName()` | `"elsFilter"` | `"elsBlacklistFilter"` |
+| `isIdPermitted(id, set)` | `set.contains(id)` | `!set.contains(id)` |
+
+**Gdzie strategie są używane:**
+
+- **`PermissionResolver`** — wstrzykuje `Map<String, AccessStrategy>` i wywołuje `applyStrategy()` w algorytmie agregacji, delegując interpretację wildcard `*` i generowanie warunków do odpowiedniej strategii
+- **`SecurityAspect`** — wstrzykuje strategie i deleguje:
+  - `strategy.getFilterName()` — wybór filtra Hibernate (`elsFilter` vs `elsBlacklistFilter`) w `handleSelect()`
+  - `strategy.isIdPermitted()` — sprawdzanie dostępu na poziomie wiersza w `handleUpdateOrDelete()`
+
+```mermaid
+graph LR
+    A["PermissionResolver"] -->|"applyStrategy()"| B["«interface»<br/>AccessStrategy"]
+    C["SecurityAspect"] -->|"getFilterName()<br/>isIdPermitted()"| B
+    B --> D["WhitelistStrategy<br/>@Component"]
+    B --> E["BlacklistStrategy<br/>@Component"]
+```
 
 `FilterCondition` to record (Java 16+), transportujący decyzję z resolvera do aspektu. Pole `operator` przyjmuje wartości: `"ALL"`, `"NONE"`, `"IN"`, `"NOT IN"`.
 
@@ -885,6 +906,8 @@ Odpowiedź JSON:
 
 ### API Endpoints
 
+#### Hospital (z ochroną ELS)
+
 | Metoda | Endpoint | Akcja ELS |
 |--------|----------|-----------|
 | `GET` | `/api/hospital/departments` | `SELECT Department` |
@@ -900,6 +923,28 @@ Odpowiedź JSON:
 | `PUT` | `/api/hospital/records/{id}` | `UPDATE MedicalRecord` |
 | `DELETE` | `/api/hospital/records/{id}` | `DELETE MedicalRecord` |
 
+#### Admin (zarządzanie uprawnieniami)
+
+| Metoda | Endpoint | Opis |
+|--------|----------|------|
+| `GET` | `/api/admin/permissions/grouped` | Uprawnienia zgrupowane po kluczu (who+entity+action+accessType) |
+| `POST` | `/api/admin/permissions` | Tworzenie uprawnień z merge/upsert i ekspansją zakresów |
+| `DELETE` | `/api/admin/permissions/{id}` | Usunięcie całego uprawnienia |
+| `DELETE` | `/api/admin/permissions/{id}/ids` | Usunięcie konkretnych ID z uprawnienia |
+| `GET` | `/api/admin/users` | Lista użytkowników |
+| `POST` | `/api/admin/users` | Tworzenie użytkownika |
+| `POST` | `/api/admin/users/{userId}/roles/{roleId}` | Przypisanie roli do użytkownika |
+| `GET` | `/api/admin/roles` | Lista ról |
+| `POST` | `/api/admin/roles/simple` | Tworzenie prostej roli |
+| `POST` | `/api/admin/roles/composite` | Tworzenie roli złożonej |
+| `POST` | `/api/admin/roles/{parentId}/children/{childId}` | Dodanie dziecka do roli złożonej |
+
+**Merge/upsert:** Przy tworzeniu uprawnienia, jeśli istnieje już reguła z tym samym kluczem `(subject, entity, action, accessType)`, nowe ID są **dołączane** do istniejącego wiersza zamiast tworzenia duplikatu.
+
+**Ekspansja zakresów:** Input `"1-5,8,10-12"` jest parsowany na `"1,2,3,4,5,8,10,11,12"` przed zapisem.
+
+**Walidacja:** Backend odrzuca niepoprawne formaty ID (np. `"abc"`, `"1-"`) z HTTP 400 i opisem błędu.
+
 ---
 
 ## Frontend (els-frontend)
@@ -910,11 +955,22 @@ Aplikacja React zbudowana z Vite, składająca się z:
 - **Hospital Dashboard** — zakładki Departments / Patients / Medical Records z pełnym CRUD
 - **Admin Panel** — zarządzanie użytkownikami, rolami i uprawnieniami
 
+### Panel administracyjny — zarządzanie uprawnieniami
+
+- **Zgrupowany widok uprawnień** — tabela wyświetla jeden wiersz per unikalny klucz `(who, entity, action, accessType)`, łącząc ID ze wszystkich wierszy DB
+- **Chipy/tagi ID** — każde ID wyświetlane jako interaktywny tag z przyciskiem × do usunięcia
+  - Wildcard `*` → zielony chip **ALL ✱**
+  - Konkretne ID → szare chipy z możliwością usuwania
+- **Format zakresów w inpucie** — obsługuje: `1,2,3` (pojedyncze), `1-100` (zakresy), `*` (wildcard), `1,3-7,10` (mix)
+- **Walidacja w czasie rzeczywistym** — niepoprawny format (np. `"abc"`) podświetla input na czerwono, wyświetla komunikat błędu i blokuje przycisk Grant
+- **Merge/upsert** — dodanie ID do istniejącej reguły łączy je z obecnymi zamiast tworzyć duplikat
+
 ### Obsługa błędów ELS
 
 Frontend przechwytuje odpowiedzi HTTP i wyświetla toast-notyfikacje:
 - `403` → 🔒 Access Denied z komunikatem z els-library
 - `409` → ⚠️ Conflict (naruszenie klucza obcego)
+- `400` → ⚠️ Validation Error (niepoprawny format ID)
 - Inne → ❌ ogólny komunikat błędu
 
 ---
@@ -983,7 +1039,7 @@ els-library/src/main/java/com/els/
 ├── service/
 │   └── PermissionResolver.java  # Rozstrzyganie uprawnień (agregacja)
 └── strategies/
-    ├── AccessStrategy.java      # Interfejs strategii + FilterCondition record
-    ├── BlacklistStrategy.java   # Implementacja: "NOT IN"
-    └── WhitelistStrategy.java   # Implementacja: "IN"
+    ├── AccessStrategy.java      # Interfejs strategii (3 metody) + FilterCondition record
+    ├── BlacklistStrategy.java   # Strategia: NOT IN / NONE + elsBlacklistFilter + !contains
+    └── WhitelistStrategy.java   # Strategia: IN / ALL + elsFilter + contains
 ```

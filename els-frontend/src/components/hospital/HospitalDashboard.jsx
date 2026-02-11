@@ -5,6 +5,7 @@ const HospitalDashboard = ({ user }) => {
     const [activeTab, setActiveTab] = useState('patients');
     const [data, setData] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [patients, setPatients] = useState([]); // [NEW] State for patients dropdown
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
 
@@ -21,10 +22,15 @@ const HospitalDashboard = ({ user }) => {
     useEffect(() => {
         fetchData();
         fetchDepartments();
+        fetchPatients(); // [NEW] Fetch patients for dropdowns
     }, [activeTab]);
 
     const fetchDepartments = () => {
         api.get('/hospital/departments').then(res => setDepartments(res.data)).catch(() => { });
+    };
+
+    const fetchPatients = () => {
+        api.get('/hospital/patients').then(res => setPatients(res.data)).catch(() => { });
     };
 
     const fetchData = async () => {
@@ -106,6 +112,8 @@ const HospitalDashboard = ({ user }) => {
             });
             setNewPatient({ name: '', departmentId: '' });
             fetchData();
+            // Refresh patients list since a new one was added
+            fetchPatients();
         } catch (err) { handleError(err, 'INSERT Patient'); }
     };
 
@@ -118,6 +126,7 @@ const HospitalDashboard = ({ user }) => {
             });
             setEditingPatient(null);
             fetchData();
+            fetchPatients();
         } catch (err) { handleError(err, 'UPDATE Patient'); }
     };
 
@@ -126,6 +135,7 @@ const HospitalDashboard = ({ user }) => {
         try {
             await api.delete(`/hospital/patients/${id}`);
             fetchData();
+            fetchPatients();
         } catch (err) { handleError(err, 'DELETE Patient'); }
     };
 
@@ -288,10 +298,13 @@ const HospitalDashboard = ({ user }) => {
                                     <input type="text" placeholder="e.g. Cast applied" value={newRecord.treatment}
                                         onChange={e => setNewRecord({ ...newRecord, treatment: e.target.value })} required />
                                 </div>
-                                <div className="form-field" style={{ flex: 0, minWidth: '100px' }}>
-                                    <label>Patient&nbsp;ID</label>
-                                    <input type="number" placeholder="ID" value={newRecord.patientId}
-                                        onChange={e => setNewRecord({ ...newRecord, patientId: e.target.value })} required />
+                                <div className="form-field" style={{ flex: 1 }}>
+                                    <label>Patient</label>
+                                    <select value={newRecord.patientId}
+                                        onChange={e => setNewRecord({ ...newRecord, patientId: e.target.value })} required>
+                                        <option value="">Select…</option>
+                                        {patients.map(p => <option key={p.id} value={p.id}>{p.name} (ID: {p.id})</option>)}
+                                    </select>
                                 </div>
                                 <button type="submit" className="btn-success">Add</button>
                             </form>
@@ -311,10 +324,13 @@ const HospitalDashboard = ({ user }) => {
                                         <input type="text" value={editingRecord.treatment}
                                             onChange={e => setEditingRecord({ ...editingRecord, treatment: e.target.value })} required />
                                     </div>
-                                    <div className="form-field" style={{ flex: 0, minWidth: '100px' }}>
-                                        <label>Patient&nbsp;ID</label>
-                                        <input type="number" value={editingRecord.patientId}
-                                            onChange={e => setEditingRecord({ ...editingRecord, patientId: e.target.value })} required />
+                                    <div className="form-field" style={{ flex: 1 }}>
+                                        <label>Patient</label>
+                                        <select value={editingRecord.patientId}
+                                            onChange={e => setEditingRecord({ ...editingRecord, patientId: e.target.value })} required>
+                                            <option value="">Select…</option>
+                                            {patients.map(p => <option key={p.id} value={p.id}>{p.name} (ID: {p.id})</option>)}
+                                        </select>
                                     </div>
                                     <button type="submit" className="btn-primary">Save</button>
                                     <button type="button" className="btn-secondary" onClick={() => setEditingRecord(null)}>Cancel</button>
