@@ -85,14 +85,24 @@ public class PermissionResolver {
         Set<Object> allowedIds = new HashSet<>();
         Set<Object> deniedIds = new HashSet<>();
         boolean hasWhitelist = false;
+        boolean allowAll = false;
+        boolean denyAll = false;
 
         for (Permission p : permissions) {
             List<String> ids = parseIds(p.getRowIds());
             if (p.getAccessType() == AccessType.WHITELIST) {
-                allowedIds.addAll(ids);
+                if (ids.contains("*")) {
+                    allowAll = true;
+                } else {
+                    allowedIds.addAll(ids);
+                }
                 hasWhitelist = true;
             } else {
-                deniedIds.addAll(ids);
+                if (ids.contains("*")) {
+                    denyAll = true;
+                } else {
+                    deniedIds.addAll(ids);
+                }
             }
         }
 
@@ -101,6 +111,11 @@ public class PermissionResolver {
         // For this demo/standard RLS, we want the list of final IDs to inject into "IN
         // (...)".
         // Calculate Effective Allow Set:
+
+        // If denyAll, block everything (highest priority)
+        if (denyAll) {
+            return new FilterCondition("NONE", Collections.emptyList());
+        }
 
         // If NO Whitelists exist, is it "Allow All" or "Deny All"?
         // Security default: Deny All.
@@ -115,11 +130,17 @@ public class PermissionResolver {
             return new FilterCondition("NONE", Collections.emptyList());
         }
 
-        // Whitelist exists: Union of Allowed minus Denied
-        if (allowedIds.contains("*")) {
-            return new FilterCondition("ALL", Collections.emptyList());
+        // Whitelist exists
+        if (allowAll) {
+            // Allow all, but exclude denied if any
+            if (!deniedIds.isEmpty()) {
+                return new FilterCondition("NOT IN", new ArrayList<>(deniedIds));
+            } else {
+                return new FilterCondition("ALL", Collections.emptyList());
+            }
         }
 
+        // Specific allowed IDs: Union of Allowed minus Denied
         allowedIds.removeAll(deniedIds);
 
         if (allowedIds.isEmpty()) {
