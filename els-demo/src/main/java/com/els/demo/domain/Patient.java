@@ -2,6 +2,10 @@ package com.els.demo.domain;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "patients")
@@ -21,6 +25,10 @@ public class Patient {
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<MedicalRecord> medicalRecords = new ArrayList<>();
 
     // Getters and Setters
     public Long getId() {

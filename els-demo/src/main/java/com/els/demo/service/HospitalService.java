@@ -27,10 +27,30 @@ public class HospitalService {
         this.medicalRecordRepository = medicalRecordRepository;
     }
 
+    // --- Department CRUD ---
+
     @Secure(entity = Department.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<Department> getAllDepartments() {
         return departmentRepository.findAll();
+    }
+
+    @Secure(entity = Department.class, action = Action.INSERT)
+    @Transactional
+    public Department addDepartment(Department department) {
+        return departmentRepository.save(department);
+    }
+
+    @Secure(entity = Department.class, action = Action.UPDATE)
+    @Transactional
+    public Department updateDepartment(Department department) {
+        return departmentRepository.save(department);
+    }
+
+    @Secure(entity = Department.class, action = Action.DELETE)
+    @Transactional
+    public void deleteDepartment(Long departmentId) {
+        departmentRepository.deleteById(departmentId);
     }
 
     @Secure(entity = Patient.class, action = Action.SELECT)
@@ -73,6 +93,12 @@ public class HospitalService {
 
     // --- Write Operations (UPDATE) ---
 
+    @Secure(entity = Patient.class, action = Action.UPDATE)
+    @Transactional
+    public Patient updatePatient(Patient patient) {
+        return patientRepository.save(patient);
+    }
+
     @Secure(entity = MedicalRecord.class, action = Action.UPDATE)
     @Transactional
     public MedicalRecord updateMedicalRecord(MedicalRecord record) {
@@ -85,5 +111,11 @@ public class HospitalService {
     @Transactional
     public void dischargePatient(Long patientId) {
         patientRepository.deleteById(patientId);
+    }
+
+    @Secure(entity = MedicalRecord.class, action = Action.DELETE)
+    @Transactional
+    public void deleteMedicalRecord(Long recordId) {
+        medicalRecordRepository.deleteById(recordId);
     }
 }

@@ -23,6 +23,22 @@ public class HospitalController {
         return hospitalService.getAllDepartments();
     }
 
+    @PostMapping("/departments")
+    public Department addDepartment(@RequestBody Department department) {
+        return hospitalService.addDepartment(department);
+    }
+
+    @PutMapping("/departments/{id}")
+    public Department updateDepartment(@PathVariable Long id, @RequestBody Department department) {
+        department.setId(id);
+        return hospitalService.updateDepartment(department);
+    }
+
+    @DeleteMapping("/departments/{id}")
+    public void deleteDepartment(@PathVariable Long id) {
+        hospitalService.deleteDepartment(id);
+    }
+
     @GetMapping("/patients")
     public List<Patient> getPatients(@RequestParam(required = false) Long deptId) {
         if (deptId != null) {
@@ -41,7 +57,21 @@ public class HospitalController {
 
     @PostMapping("/patients")
     public Patient addPatient(@RequestBody Patient patient) {
+        // Auto-generate SSN if not provided (field is required in DB)
+        if (patient.getSsn() == null || patient.getSsn().isBlank()) {
+            patient.setSsn("SSN-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000));
+        }
         return hospitalService.addPatient(patient);
+    }
+
+    @PutMapping("/patients/{id}")
+    public Patient updatePatient(@PathVariable Long id, @RequestBody Patient patient) {
+        patient.setId(id);
+        // Preserve SSN if not provided in the update payload
+        if (patient.getSsn() == null || patient.getSsn().isBlank()) {
+            patient.setSsn("SSN-PRESERVED");
+        }
+        return hospitalService.updatePatient(patient);
     }
 
     @DeleteMapping("/patients/{id}")
@@ -59,5 +89,10 @@ public class HospitalController {
         // Ensure ID consistency
         record.setId(id);
         return hospitalService.updateMedicalRecord(record);
+    }
+
+    @DeleteMapping("/records/{id}")
+    public void deleteMedicalRecord(@PathVariable Long id) {
+        hospitalService.deleteMedicalRecord(id);
     }
 }

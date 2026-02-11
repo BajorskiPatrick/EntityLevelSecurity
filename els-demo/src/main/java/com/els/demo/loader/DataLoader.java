@@ -34,7 +34,6 @@ public class DataLoader implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // Prevent doubling data on restart if using persistent DB (H2 file or Postgres)
         if (userRepository.count() > 0) {
             return;
         }
@@ -57,107 +56,71 @@ public class DataLoader implements CommandLineRunner {
 
         // --- 3. Users ---
         User admin = createUser("admin", "admin", adminRole);
-        User drHouse = createUser("dr_house", "password", headDoctorRole); // Has access as Doctor + Nurse
+        User drHouse = createUser("dr_house", "password", headDoctorRole);
         User drStrange = createUser("dr_strange", "password", doctorRole);
         User nurseJoy = createUser("nurse_joy", "password", nurseRole);
 
         // --- 4. Data (Patients & Records) ---
         Patient p1 = createPatient("John Doe", cardio);
         Patient p2 = createPatient("Jane Smith", cardio);
-        Patient p3 = createPatient("Gregory House", neuro); // He is a patient too?
+        Patient p3 = createPatient("Gregory House", neuro);
         Patient p4 = createPatient("Kenny McCormick", er);
         Patient p5 = createPatient("Eric Cartman", er);
 
         createRecord("Flu", "Prescribed rest", p1);
-        createRecord("Heart Attack", "Surgery scheduled", p1); // Two records for p1
+        createRecord("Heart Attack", "Surgery scheduled", p1);
         createRecord("Migraine", "Painkillers", p2);
         createRecord("Lupus", "It's never lupus", p3);
         createRecord("Trauma", "CPR initiated", p4);
 
         // --- 5. Permissions ---
-
-        // ADMIN: Full Access (Simulated by not checking or granting ALL)
-        // but here we use the library, so we explicitly grant access.
+        // ADMIN: full CRUD on all entities (wildcard)
         createPermission(null, adminRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Department", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Department", Action.INSERT, AccessType.WHITELIST, null);
         createPermission(null, adminRole, "Department", Action.UPDATE, AccessType.WHITELIST, "*");
         createPermission(null, adminRole, "Department", Action.DELETE, AccessType.WHITELIST, "*");
 
         createPermission(null, adminRole, "Patient", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Patient", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
         createPermission(null, adminRole, "Patient", Action.UPDATE, AccessType.WHITELIST, "*");
         createPermission(null, adminRole, "Patient", Action.DELETE, AccessType.WHITELIST, "*");
 
         createPermission(null, adminRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, "*");
+        createPermission(null, adminRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
         createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
         createPermission(null, adminRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
 
-        // DOCTOR: Can SELECT all patients in their department?
-        // Let's rely on Whitelist for specific demonstration.
-
-        // Shared: Doctors and Nurses can see Departments
+        // DOCTOR & NURSE: can view all departments (read-only)
         createPermission(null, doctorRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
         createPermission(null, nurseRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
 
-        // dr_strange (Doctor): Can see p1, p2 (Cardio patients)
+        // DOCTOR: can SELECT specific patients (p1, p2), INSERT patients, full CRUD on
+        // records
         createPermission(null, doctorRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p1.getId() + "," + p2.getId());
+        createPermission(null, doctorRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
 
-        // Can INSERT MedicalRecords (Binary permission: Any whitelist entry allows
-        // INSERT)
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
         createPermission(null, doctorRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
 
-        // nurse_joy (Nurse): Can see p4, p5 (ER).
+        // NURSE: can SELECT specific patients (p4, p5), INSERT patients, SELECT &
+        // INSERT & UPDATE records (no DELETE)
         createPermission(null, nurseRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p4.getId() + "," + p5.getId());
-
-        // nurse_joy (Nurse): Can see records for p4, p5
-        // Ideally we'd query record IDs, but for demo we can map based on knowledge of
-        // data creation
-        // records: 5 (Trauma) is for p4.
-        // Let's grant access to all records for simplicity in demo or just *
-        // Specifying * for now to resolve Access Denied quickly, or specific IDs if we
-        // want to be strict.
-        // Given existing Patient restriction, let's restrict records too?
-        // Actually, let's just use * for MedicalRecord SELECT for simplicity as the
-        // Patient filter limits "ownership" usually,
-        // but here filters are independent.
-        // Let's grant * for MedicalRecord SELECT to Doctors and Nurses so they can see
-        // records...
-        // Wait, if I grant *, they see ALL records.
-        // Demo requirement: "Entity Level Security".
-        // Let's grant specific record IDs corresponding to their patients.
-        // p1 (1, 2), p2 (3), p3 (4), p4 (5)
-        // Doctor (p1, p2) -> Records 1, 2, 3
-        // Nurse (p4, p5) -> Record 5
-        // Note: Creating records returns objects with IDs.
-        // We didn't capture record objects in variables. I'll update createRecord calls
-        // to capture them.
-
-        // Actually, just granting * for SELECT MedicalRecord is easier and common if
-        // Patient access is the primary gate.
-        // BUT strict ELS means we should filter records too.
-        // Let's grant * for now to fix the specific error 403.
-        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-
-        // nurse_joy: Can INSERT Patients
         createPermission(null, nurseRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
 
-        // dr_house (Head Doctor -> Composite):
-        // Inherits Doctor (p1, p2) + Nurse (p4, p5) => Should see p1, p2, p4, p5.
-        // Also has specific permission for p3 (Neuro)
-        createPermission(drHouse, null, "Patient", Action.SELECT, AccessType.WHITELIST, String.valueOf(p3.getId()));
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
+        createPermission(null, nurseRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
 
-        // Update/Delete permissions for demo
-        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*"); // Can update all
-                                                                                                       // records
+        // dr_house (user-specific): additional patient p3 visible
+        // (as HEAD_DOCTOR he inherits DOCTOR+NURSE, seeing p1,p2,p4,p5; this adds p3)
+        createPermission(drHouse, null, "Patient", Action.SELECT, AccessType.WHITELIST, String.valueOf(p3.getId()));
 
         System.out.println("--- DEMO DATA LOADED ---");
     }
-
-    // --- Helpers ---
 
     private com.els.domain.SimpleRole createSimpleRole(String name) {
         com.els.domain.SimpleRole r = new com.els.domain.SimpleRole();
@@ -203,7 +166,7 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void createPermission(User user, Role role, String entity, Action action, AccessType type, String ids) {
-        Permission p = new Permission(); // Using Manual Setter instead of Builder as per user pref (or mix)
+        Permission p = new Permission();
         p.setUser(user);
         p.setRole(role);
         p.setEntityName(entity);
