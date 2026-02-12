@@ -24,11 +24,11 @@ public class PermissionManager {
 
         String username = (saved.getUser() != null) ? saved.getUser().getUsername() : null;
 
-        PermissionUpdateEvent event = new PermissionUpdateEvent(
-                this,
-                username,
-                saved.getEntityName(),
-                saved.getAction());
+        PermissionUpdateEvent event = PermissionUpdateEvent.builder(this)
+                .username(username)
+                .entityName(saved.getEntityName())
+                .action(saved.getAction())
+                .build();
 
         eventPublisher.publishEvent(event);
         return saved;
@@ -40,8 +40,11 @@ public class PermissionManager {
             String username = (p.getUser() != null) ? p.getUser().getUsername() : null;
             permissionRepository.delete(p);
 
-            eventPublisher.publishEvent(new PermissionUpdateEvent(
-                    this, username, p.getEntityName(), p.getAction()));
+            eventPublisher.publishEvent(PermissionUpdateEvent.builder(this)
+                    .username(username)
+                    .entityName(p.getEntityName())
+                    .action(p.getAction())
+                    .build());
         });
     }
 }

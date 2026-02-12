@@ -27,4 +27,38 @@ public class PermissionUpdateEvent extends ApplicationEvent {
     public Action getAction() {
         return action;
     }
+
+    public static Builder builder(Object source) {
+        return new Builder(source);
+    }
+
+    public static class Builder {
+        private final Object source;
+        private String username;
+        private String entityName;
+        private Action action;
+
+        public Builder(Object source) {
+            this.source = source;
+        }
+
+        public Builder username(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public Builder entityName(String entityName) {
+            this.entityName = entityName;
+            return this;
+        }
+
+        public Builder action(Action action) {
+            this.action = action;
+            return this;
+        }
+
+        public PermissionUpdateEvent build() {
+            return new PermissionUpdateEvent(source, username, entityName, action);
+        }
+    }
 }
