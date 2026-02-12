@@ -70,13 +70,14 @@ public class AdminController {
 
             List<Long> permIds = perms.stream().map(Permission::getId).collect(Collectors.toList());
 
-            result.add(new GroupedPermissionDTO(
-                    who,
-                    first.getEntityName(),
-                    first.getAction().name(),
-                    first.getAccessType().name(),
-                    new ArrayList<>(mergedIds),
-                    permIds));
+            result.add(GroupedPermissionDTO.builder()
+                    .who(who)
+                    .entityName(first.getEntityName())
+                    .action(first.getAction().name())
+                    .accessType(first.getAccessType().name())
+                    .ids(new ArrayList<>(mergedIds))
+                    .permissionIds(permIds)
+                    .build());
         }
         return result;
     }
@@ -178,15 +179,17 @@ public class AdminController {
 
     @PostMapping("/roles/simple")
     public ResponseEntity<Role> createSimpleRole(@RequestParam String name) {
-        SimpleRole role = new SimpleRole();
-        role.setName(name);
+        SimpleRole role = SimpleRole.builder()
+                .name(name)
+                .build();
         return ResponseEntity.ok(roleRepository.save(role));
     }
 
     @PostMapping("/roles/composite")
     public ResponseEntity<Role> createCompositeRole(@RequestParam String name) {
-        CompositeRole role = new CompositeRole();
-        role.setName(name);
+        CompositeRole role = CompositeRole.builder()
+                .name(name)
+                .build();
         return ResponseEntity.ok(roleRepository.save(role));
     }
 

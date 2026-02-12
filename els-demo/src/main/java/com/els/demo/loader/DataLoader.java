@@ -123,45 +123,50 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private com.els.domain.SimpleRole createSimpleRole(String name) {
-        com.els.domain.SimpleRole r = new com.els.domain.SimpleRole();
-        r.setName(name);
+        com.els.domain.SimpleRole r = com.els.domain.SimpleRole.builder()
+                .name(name)
+                .build();
         return roleRepository.save(r);
     }
 
     private com.els.domain.CompositeRole createCompositeRole(String name) {
-        com.els.domain.CompositeRole r = new com.els.domain.CompositeRole();
-        r.setName(name);
+        com.els.domain.CompositeRole r = com.els.domain.CompositeRole.builder()
+                .name(name)
+                .build();
         return roleRepository.save(r);
     }
 
     private User createUser(String name, String pass, Role... roles) {
-        User u = new User();
-        u.setUsername(name);
-        u.setPassword(pass);
+        User.Builder builder = User.builder()
+                .username(name)
+                .password(pass);
         for (Role r : roles)
-            u.getRoles().add(r);
-        return userRepository.save(u);
+            builder.role(r);
+        return userRepository.save(builder.build());
     }
 
     private Department createDepartment(String name) {
-        Department d = new Department();
-        d.setName(name);
+        Department d = Department.builder()
+                .name(name)
+                .build();
         return departmentRepository.save(d);
     }
 
     private Patient createPatient(String name, Department dept) {
-        Patient p = new Patient();
-        p.setName(name);
-        p.setSsn("SSN-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000));
-        p.setDepartment(dept);
+        Patient p = Patient.builder()
+                .name(name)
+                .ssn("SSN-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000))
+                .department(dept)
+                .build();
         return patientRepository.save(p);
     }
 
     private MedicalRecord createRecord(String diagnosis, String treatment, Patient p) {
-        MedicalRecord mr = new MedicalRecord();
-        mr.setDiagnosis(diagnosis);
-        mr.setTreatment(treatment);
-        mr.setPatient(p);
+        MedicalRecord mr = MedicalRecord.builder()
+                .diagnosis(diagnosis)
+                .treatment(treatment)
+                .patient(p)
+                .build();
         return medicalRecordRepository.save(mr);
     }
 

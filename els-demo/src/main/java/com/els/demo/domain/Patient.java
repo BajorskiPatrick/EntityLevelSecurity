@@ -61,4 +61,40 @@ public class Patient {
     public void setDepartment(Department department) {
         this.department = department;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final Patient patient;
+
+        public Builder() {
+            this.patient = new Patient();
+        }
+
+        public Builder id(Long id) {
+            this.patient.setId(id);
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.patient.setName(name);
+            return this;
+        }
+
+        public Builder ssn(String ssn) {
+            this.patient.setSsn(ssn);
+            return this;
+        }
+
+        public Builder department(Department department) {
+            this.patient.setDepartment(department);
+            return this;
+        }
+
+        public Patient build() {
+            return this.patient;
+        }
+    }
 }

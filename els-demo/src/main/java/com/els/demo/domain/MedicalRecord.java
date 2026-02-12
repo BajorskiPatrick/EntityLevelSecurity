@@ -54,4 +54,40 @@ public class MedicalRecord {
     public void setTreatment(String treatment) {
         this.treatment = treatment;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final MedicalRecord record;
+
+        public Builder() {
+            this.record = new MedicalRecord();
+        }
+
+        public Builder id(Long id) {
+            this.record.setId(id);
+            return this;
+        }
+
+        public Builder patient(Patient patient) {
+            this.record.setPatient(patient);
+            return this;
+        }
+
+        public Builder diagnosis(String diagnosis) {
+            this.record.setDiagnosis(diagnosis);
+            return this;
+        }
+
+        public Builder treatment(String treatment) {
+            this.record.setTreatment(treatment);
+            return this;
+        }
+
+        public MedicalRecord build() {
+            return this.record;
+        }
+    }
 }

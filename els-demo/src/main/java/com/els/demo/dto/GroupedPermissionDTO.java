@@ -70,4 +70,50 @@ public class GroupedPermissionDTO {
     public void setPermissionIds(List<Long> permissionIds) {
         this.permissionIds = permissionIds;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final GroupedPermissionDTO dto;
+
+        public Builder() {
+            this.dto = new GroupedPermissionDTO();
+        }
+
+        public Builder who(String who) {
+            this.dto.setWho(who);
+            return this;
+        }
+
+        public Builder entityName(String entityName) {
+            this.dto.setEntityName(entityName);
+            return this;
+        }
+
+        public Builder action(String action) {
+            this.dto.setAction(action);
+            return this;
+        }
+
+        public Builder accessType(String accessType) {
+            this.dto.setAccessType(accessType);
+            return this;
+        }
+
+        public Builder ids(List<String> ids) {
+            this.dto.setIds(ids);
+            return this;
+        }
+
+        public Builder permissionIds(List<Long> permissionIds) {
+            this.dto.setPermissionIds(permissionIds);
+            return this;
+        }
+
+        public GroupedPermissionDTO build() {
+            return this.dto;
+        }
+    }
 }

@@ -28,4 +28,40 @@ public class CompositeRole extends Role {
     public void setChildren(Set<Role> children) {
         this.children = children;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final CompositeRole role;
+
+        public Builder() {
+            this.role = new CompositeRole();
+        }
+
+        public Builder id(Long id) {
+            this.role.setId(id);
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.role.setName(name);
+            return this;
+        }
+
+        public Builder children(Set<Role> children) {
+            this.role.setChildren(children);
+            return this;
+        }
+
+        public Builder child(Role child) {
+            this.role.addChild(child);
+            return this;
+        }
+
+        public CompositeRole build() {
+            return this.role;
+        }
+    }
 }

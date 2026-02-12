@@ -30,4 +30,30 @@ public class Department {
     public void setName(String name) {
         this.name = name;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final Department department;
+
+        public Builder() {
+            this.department = new Department();
+        }
+
+        public Builder id(Long id) {
+            this.department.setId(id);
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.department.setName(name);
+            return this;
+        }
+
+        public Department build() {
+            return this.department;
+        }
+    }
 }
