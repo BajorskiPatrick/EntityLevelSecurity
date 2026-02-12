@@ -74,7 +74,6 @@ public class DataLoader implements CommandLineRunner {
         createRecord("Trauma", "CPR initiated", p4);
 
         // --- 5. Permissions ---
-        // ADMIN: full CRUD on all entities (wildcard)
         createPermission(null, adminRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
         createPermission(null, adminRole, "Department", Action.INSERT, AccessType.WHITELIST, null);
         createPermission(null, adminRole, "Department", Action.UPDATE, AccessType.WHITELIST, "*");
@@ -90,12 +89,9 @@ public class DataLoader implements CommandLineRunner {
         createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
         createPermission(null, adminRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
 
-        // DOCTOR & NURSE: can view all departments (read-only)
         createPermission(null, doctorRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
         createPermission(null, nurseRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
 
-        // DOCTOR: can SELECT specific patients (p1, p2), INSERT patients, full CRUD on
-        // records
         createPermission(null, doctorRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p1.getId() + "," + p2.getId());
         createPermission(null, doctorRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
@@ -105,8 +101,6 @@ public class DataLoader implements CommandLineRunner {
         createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
         createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
 
-        // NURSE: can SELECT specific patients (p4, p5), INSERT patients, SELECT &
-        // INSERT & UPDATE records (no DELETE)
         createPermission(null, nurseRole, "Patient", Action.SELECT, AccessType.WHITELIST,
                 p4.getId() + "," + p5.getId());
         createPermission(null, nurseRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
@@ -115,8 +109,6 @@ public class DataLoader implements CommandLineRunner {
         createPermission(null, nurseRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
         createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
 
-        // dr_house (user-specific): additional patient p3 visible
-        // (as HEAD_DOCTOR he inherits DOCTOR+NURSE, seeing p1,p2,p4,p5; this adds p3)
         createPermission(drHouse, null, "Patient", Action.SELECT, AccessType.WHITELIST, String.valueOf(p3.getId()));
 
         System.out.println("--- DEMO DATA LOADED ---");
