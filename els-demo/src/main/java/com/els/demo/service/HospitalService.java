@@ -27,8 +27,6 @@ public class HospitalService {
         this.medicalRecordRepository = medicalRecordRepository;
     }
 
-    // --- Department CRUD ---
-
     @Secure(entity = Department.class, action = Action.SELECT)
     @Transactional(readOnly = true)
     public List<Department> getAllDepartments() {
@@ -77,8 +75,6 @@ public class HospitalService {
         return medicalRecordRepository.findByPatientId(patientId);
     }
 
-    // --- Write Operations (INSERT) ---
-
     @Secure(entity = Patient.class, action = Action.INSERT)
     @Transactional
     public Patient addPatient(Patient patient) {
@@ -91,8 +87,6 @@ public class HospitalService {
         return medicalRecordRepository.save(record);
     }
 
-    // --- Write Operations (UPDATE) ---
-
     @Secure(entity = Patient.class, action = Action.UPDATE)
     @Transactional
     public Patient updatePatient(Patient patient) {
@@ -104,8 +98,6 @@ public class HospitalService {
     public MedicalRecord updateMedicalRecord(MedicalRecord record) {
         return medicalRecordRepository.save(record);
     }
-
-    // --- Write Operations (DELETE) ---
 
     @Secure(entity = Patient.class, action = Action.DELETE)
     @Transactional

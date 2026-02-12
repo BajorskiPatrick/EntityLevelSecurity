@@ -22,7 +22,6 @@ public class PermissionManager {
     public Permission savePermission(Permission permission) {
         Permission saved = permissionRepository.save(permission);
 
-        // Notify observers
         String username = (saved.getUser() != null) ? saved.getUser().getUsername() : null;
 
         PermissionUpdateEvent event = new PermissionUpdateEvent(
@@ -37,7 +36,6 @@ public class PermissionManager {
 
     @Transactional
     public void deletePermission(Long permissionId) {
-        // Fetch before delete to get info for event
         permissionRepository.findById(permissionId).ifPresent(p -> {
             String username = (p.getUser() != null) ? p.getUser().getUsername() : null;
             permissionRepository.delete(p);

@@ -8,12 +8,11 @@ import org.springframework.stereotype.Component;
 /**
  * Blacklist strategy: denies access to rows whose IDs are in the permission
  * set.
- * <ul>
- * <li>Wildcard (*) → deny access to ALL rows (complete block)</li>
- * <li>Specific IDs → allow access to all rows EXCEPT those in the ID list</li>
- * <li>Uses Hibernate filter "elsBlacklistFilter" (WHERE id NOT IN :ids)</li>
- * <li>Row check: targetId must NOT be contained in the denied set</li>
- * </ul>
+ *
+ * - Wildcard (*) → deny access to ALL rows (complete block)
+ * - Specific IDs → allow access to all rows EXCEPT those in the ID list
+ * - Uses Hibernate filter "elsBlacklistFilter" (WHERE id NOT IN :ids)
+ * - Row check: targetId must NOT be contained in the denied set
  */
 @Component
 public class BlacklistStrategy implements AccessStrategy {
@@ -33,7 +32,6 @@ public class BlacklistStrategy implements AccessStrategy {
 
     @Override
     public boolean isIdPermitted(Long targetId, Set<Long> permittedIds) {
-        // Blacklist: the target must NOT be in the denied set
         return !permittedIds.contains(targetId);
     }
 }

@@ -9,9 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PermissionCache {
 
-    // Flyweight storage: Key -> Resolved Filter Condition (which contains the ID
-    // list)
-    // We cache the RESULT of the resolution (the Condition to apply).
     private final Map<PermissionKey, FilterCondition> cache = new ConcurrentHashMap<>();
 
     public FilterCondition get(PermissionKey key) {

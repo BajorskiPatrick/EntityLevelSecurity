@@ -15,7 +15,6 @@ public abstract class Role {
     @Column(nullable = false, unique = true)
     private String name;
 
-    // Manual Getters and Setters
     public Long getId() {
         return id;
     }
@@ -31,8 +30,4 @@ public abstract class Role {
     public void setName(String name) {
         this.name = name;
     }
-
-    // Pattern Operation: You could add abstract methods here if logic resides in
-    // the domain
-    // e.g. public abstract Set<Permission> resolvePermissions();
 }

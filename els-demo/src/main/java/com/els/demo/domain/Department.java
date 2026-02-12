@@ -13,9 +13,8 @@ public class Department {
     private Long id;
 
     @Column(nullable = false)
-    private String name; // e.g., "Cardiology", "Neurology"
+    private String name;
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

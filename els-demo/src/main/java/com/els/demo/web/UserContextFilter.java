@@ -1,11 +1,9 @@
 package com.els.demo.web;
 
 import com.els.context.SecurityContext;
-import com.els.domain.User;
 import com.els.repository.UserRepository;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,13 +21,11 @@ public class UserContextFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
 
-        // Priority 1: Session-based Auth
         Long userId = (Long) req.getSession().getAttribute("USER_ID");
 
         if (userId != null) {
             userRepository.findById(userId).ifPresent(securityContext::setCurrentUser);
         } else {
-            // Priority 2: Insecure Header (Legacy/Dev fallback)
             String username = req.getHeader("X-User");
             if (username != null) {
                 userRepository.findByUsername(username).ifPresent(securityContext::setCurrentUser);

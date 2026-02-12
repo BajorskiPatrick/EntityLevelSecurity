@@ -21,7 +21,6 @@ public class CompositeRole extends Role {
         this.children.remove(role);
     }
 
-    // Manual Getters and Setters
     public Set<Role> getChildren() {
         return children;
     }

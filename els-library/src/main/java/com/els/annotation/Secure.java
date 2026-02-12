@@ -11,5 +11,5 @@ import java.lang.annotation.Target;
 public @interface Secure {
     Action action() default Action.SELECT;
 
-    Class<?> entity(); // The entity class being accessed, e.g. Product.class
+    Class<?> entity();
 }

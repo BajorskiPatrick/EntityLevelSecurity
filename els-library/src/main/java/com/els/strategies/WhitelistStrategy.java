@@ -8,12 +8,11 @@ import org.springframework.stereotype.Component;
 /**
  * Whitelist strategy: grants access to rows whose IDs are IN the permission
  * set.
- * <ul>
- * <li>Wildcard (*) → allow access to ALL rows</li>
- * <li>Specific IDs → allow access only to rows IN the ID list</li>
- * <li>Uses Hibernate filter "elsFilter" (WHERE id IN :ids)</li>
- * <li>Row check: targetId must be contained in the permitted set</li>
- * </ul>
+ *
+ * - Wildcard (*) → allow access to ALL rows
+ * - Specific IDs → allow access only to rows IN the ID list
+ * - Uses Hibernate filter "elsFilter" (WHERE id IN :ids)
+ * - Row check: targetId must be contained in the permitted set
  */
 @Component
 public class WhitelistStrategy implements AccessStrategy {
@@ -33,7 +32,6 @@ public class WhitelistStrategy implements AccessStrategy {
 
     @Override
     public boolean isIdPermitted(Long targetId, Set<Long> permittedIds) {
-        // Whitelist: the target must be IN the allowed set
         return permittedIds.contains(targetId);
     }
 }

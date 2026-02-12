@@ -10,36 +10,32 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Direct User assignment
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    // Role assignment
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
 
     @Column(nullable = false)
-    private String entityName; // e.g., "Product" or table name
+    private String entityName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Action action; // SELECT, UPDATE...
+    private Action action;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccessType accessType; // WHITELIST, BLACKLIST
+    private AccessType accessType;
 
     @Column(columnDefinition = "TEXT")
-    private String rowIds; // JSON or CSV string of IDs: "1,2,3"
+    private String rowIds;
 
-    // Helper to check if it applies to user or role
     public boolean isUserPermission() {
         return user != null;
     }
 
-    // Manual Getters and Setters
     public Long getId() {
         return id;
     }
@@ -96,7 +92,6 @@ public class Permission {
         this.rowIds = rowIds;
     }
 
-    // --- Builder Pattern ---
     public static Builder builder() {
         return new Builder();
     }

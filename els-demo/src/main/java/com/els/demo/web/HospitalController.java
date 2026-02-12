@@ -57,7 +57,6 @@ public class HospitalController {
 
     @PostMapping("/patients")
     public Patient addPatient(@RequestBody Patient patient) {
-        // Auto-generate SSN if not provided (field is required in DB)
         if (patient.getSsn() == null || patient.getSsn().isBlank()) {
             patient.setSsn("SSN-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000));
         }
@@ -67,7 +66,6 @@ public class HospitalController {
     @PutMapping("/patients/{id}")
     public Patient updatePatient(@PathVariable Long id, @RequestBody Patient patient) {
         patient.setId(id);
-        // Preserve SSN if not provided in the update payload
         if (patient.getSsn() == null || patient.getSsn().isBlank()) {
             patient.setSsn("SSN-PRESERVED");
         }
@@ -86,7 +84,6 @@ public class HospitalController {
 
     @PutMapping("/records/{id}")
     public MedicalRecord updateMedicalRecord(@PathVariable Long id, @RequestBody MedicalRecord record) {
-        // Ensure ID consistency
         record.setId(id);
         return hospitalService.updateMedicalRecord(record);
     }

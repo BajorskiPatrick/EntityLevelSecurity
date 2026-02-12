@@ -77,14 +77,10 @@ public class PermissionResolver {
     }
 
     private FilterCondition aggregatePermissions(List<Permission> permissions, Action action) {
-        // Special Handling for INSERT
-        // Project Spec: "Access type (WHITELIST/BLACKLIST) in case of an INSERT action
-        // determines whether the user has access or no".
-        // And "row ids ... in case of INSERT action equals to null".
         if (action == Action.INSERT) {
             boolean hasBlacklist = permissions.stream()
                     .anyMatch(p -> p.getAccessType() == AccessType.BLACKLIST);
-            if(hasBlacklist){
+            if (hasBlacklist) {
                 return new FilterCondition("NONE", Collections.emptyList());
             }
             boolean canInsert = permissions.stream()

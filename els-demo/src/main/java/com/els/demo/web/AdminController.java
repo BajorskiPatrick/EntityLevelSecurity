@@ -40,18 +40,10 @@ public class AdminController {
         return roleRepository.findAll();
     }
 
-    // ============================================
-    // PERMISSIONS: raw list (kept for backward compat)
-    // ============================================
-
     @GetMapping("/permissions")
     public List<Permission> getPermissions() {
         return permissionRepository.findAll();
     }
-
-    // ============================================
-    // PERMISSIONS: grouped display
-    // ============================================
 
     @GetMapping("/permissions/grouped")
     public List<GroupedPermissionDTO> getGroupedPermissions() {
@@ -88,10 +80,6 @@ public class AdminController {
         }
         return result;
     }
-
-    // ============================================
-    // PERMISSIONS: create with merge/upsert
-    // ============================================
 
     @PostMapping("/permissions")
     public ResponseEntity<?> createPermission(@RequestBody PermissionRequest request) {
@@ -152,19 +140,11 @@ public class AdminController {
         }
     }
 
-    // ============================================
-    // PERMISSIONS: delete entire permission
-    // ============================================
-
     @DeleteMapping("/permissions/{id}")
     public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
         permissionManager.deletePermission(id);
         return ResponseEntity.ok().build();
     }
-
-    // ============================================
-    // PERMISSIONS: remove specific IDs from a permission
-    // ============================================
 
     @DeleteMapping("/permissions/{id}/ids")
     public ResponseEntity<Void> removeIdsFromPermission(@PathVariable Long id, @RequestBody Map<String, String> body) {
@@ -190,8 +170,6 @@ public class AdminController {
 
         return ResponseEntity.ok().build();
     }
-
-    // --- User & Role Management ---
 
     @PostMapping("/users")
     public User createUser(@RequestBody User user) {
@@ -262,21 +240,6 @@ public class AdminController {
         return false;
     }
 
-    // ============================================
-    // UTILITY: Range expansion & ID merging
-    // ============================================
-
-    /**
-     * Expands range expressions in a CSV string.
-     * "1-5,8,10-12" → "1,2,3,4,5,8,10,11,12"
-     * "*" → "*"
-     * null or blank → null (for INSERT permissions)
-     */
-    /**
-     * Validates rowIds format. Returns error message or null if valid.
-     * Valid: null, "", "*", "1,2,3", "1-5", "1,3-7,10"
-     * Invalid: "abc", "1-", "-5", "1,,2", "1-2-3"
-     */
     static String validateRowIds(String input) {
         if (input == null || input.isBlank())
             return null; // empty is valid (INSERT)
@@ -343,10 +306,6 @@ public class AdminController {
         return result.isEmpty() ? null : String.join(",", result);
     }
 
-    /**
-     * Merges two CSV ID strings, deduplicating.
-     * If either contains "*", result is "*".
-     */
     static String mergeIds(String existing, String incoming) {
         if (existing == null && incoming == null)
             return null;

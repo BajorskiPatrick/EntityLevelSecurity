@@ -24,16 +24,13 @@ import java.util.stream.Collectors;
  * AOP Aspect that intercepts methods annotated with {@link Secure}
  * and enforces Entity Level Security based on resolved permissions.
  *
- * <ul>
- * <li><b>SELECT</b> – uses Hibernate filters (delegated to AccessStrategy) to
- * restrict query
- * results</li>
- * <li><b>INSERT</b> – table-level check: either allowed (ALL) or denied
- * (NONE)</li>
- * <li><b>UPDATE / DELETE</b> – row-level check: delegates to
- * AccessStrategy.isIdPermitted()
- * to verify access</li>
- * </ul>
+ * SELECT – uses Hibernate filters (delegated to AccessStrategy) to restrict
+ * query results
+ * 
+ * INSERT – table-level check: either allowed (ALL) or denied (NONE)
+ * 
+ * UPDATE / DELETE – row-level check: delegates to
+ * AccessStrategy.isIdPermitted() to verify access
  */
 @Aspect
 @Component
@@ -52,7 +49,6 @@ public class SecurityAspect {
         this.securityContext = securityContext;
         this.entityManager = entityManager;
 
-        // Build operator → strategy mapping for runtime delegation
         this.strategyByOperator = new HashMap<>();
         strategiesByName.forEach((beanName, strategy) -> {
             if ("whitelistStrategy".equalsIgnoreCase(beanName)) {

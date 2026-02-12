@@ -20,7 +20,7 @@ public class Patient {
     private String name;
 
     @Column(nullable = false)
-    private String ssn; // In real app, highly sensitive
+    private String ssn;
 
     @ManyToOne
     @JoinColumn(name = "department_id")
@@ -30,7 +30,6 @@ public class Patient {
     @JsonIgnore
     private List<MedicalRecord> medicalRecords = new ArrayList<>();
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
