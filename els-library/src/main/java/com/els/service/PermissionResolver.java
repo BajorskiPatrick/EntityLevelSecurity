@@ -58,7 +58,7 @@ public class PermissionResolver {
         // 3. Aggregate using Strategy pattern
         FilterCondition condition = aggregatePermissions(permissions, action);
 
-        // 4. Cache (Flyweight pattern)
+        // 4. Cache
         permissionCache.put(key, condition);
 
         return condition;
