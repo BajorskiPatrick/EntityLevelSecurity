@@ -227,11 +227,39 @@ public class AdminController {
         Role child = roleRepository.findById(childId).orElseThrow(() -> new RuntimeException("Child Role not found"));
 
         if (parent instanceof CompositeRole compositeRole) {
+            if (createsCycle(parent, child)) {
+                return ResponseEntity.badRequest().body(null);
+            }
             compositeRole.addChild(child);
             return ResponseEntity.ok(roleRepository.save(compositeRole));
         } else {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    private boolean createsCycle(Role parent, Role child) {
+        if (Objects.equals(parent.getId(), child.getId())) {
+            return true;
+        }
+        if (!(child instanceof CompositeRole compositeChild)) {
+            return false;
+        }
+        // DFS over children to see if parent is reachable from child
+        Deque<Role> stack = new ArrayDeque<>(compositeChild.getChildren());
+        Set<Long> visited = new HashSet<>();
+        while (!stack.isEmpty()) {
+            Role current = stack.pop();
+            if (current.getId() != null && !visited.add(current.getId())) {
+                continue;
+            }
+            if (Objects.equals(current.getId(), parent.getId())) {
+                return true;
+            }
+            if (current instanceof CompositeRole currentComposite) {
+                stack.addAll(currentComposite.getChildren());
+            }
+        }
+        return false;
     }
 
     // ============================================
