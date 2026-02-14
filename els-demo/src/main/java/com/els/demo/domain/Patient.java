@@ -1,7 +1,6 @@
 package com.els.demo.domain;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Filter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
@@ -9,8 +8,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "patients")
-@Filter(name = "elsFilter", condition = "id IN (:ids)")
-@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:ids)")
 public class Patient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

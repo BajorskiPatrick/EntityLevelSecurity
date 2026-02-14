@@ -1,15 +1,13 @@
 package com.els.demo.dto;
 
-import com.els.domain.AccessType;
 import com.els.domain.Action;
 
 public class PermissionRequest {
-    private String username; // optional (if for user)
-    private Long roleId; // optional (if for role)
+    private String username;
+    private Long roleId;
     private String entityName;
     private Action action;
-    private AccessType accessType;
-    private String rowIds;
+    private Long rowId;
 
     public PermissionRequest() {
     }
@@ -46,20 +44,12 @@ public class PermissionRequest {
         this.action = action;
     }
 
-    public AccessType getAccessType() {
-        return accessType;
+    public Long getRowId() {
+        return rowId;
     }
 
-    public void setAccessType(AccessType accessType) {
-        this.accessType = accessType;
-    }
-
-    public String getRowIds() {
-        return rowIds;
-    }
-
-    public void setRowIds(String rowIds) {
-        this.rowIds = rowIds;
+    public void setRowId(Long rowId) {
+        this.rowId = rowId;
     }
 
     public static Builder builder() {
@@ -93,13 +83,8 @@ public class PermissionRequest {
             return this;
         }
 
-        public Builder accessType(AccessType accessType) {
-            this.request.setAccessType(accessType);
-            return this;
-        }
-
-        public Builder rowIds(String rowIds) {
-            this.request.setRowIds(rowIds);
+        public Builder rowId(Long rowId) {
+            this.request.setRowId(rowId);
             return this;
         }
 

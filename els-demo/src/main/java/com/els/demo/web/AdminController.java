@@ -49,7 +49,7 @@ public class AdminController {
     public List<GroupedPermissionDTO> getGroupedPermissions() {
         List<Permission> all = permissionRepository.findAll();
 
-        // Group by composite key: who + entity + action + accessType
+        // Group by: who + entity + action
         Map<String, List<Permission>> groups = all.stream()
                 .collect(Collectors.groupingBy(this::groupKey, LinkedHashMap::new, Collectors.toList()));
 
@@ -62,11 +62,12 @@ public class AdminController {
                     ? "U: " + first.getUser().getUsername()
                     : "R: " + (first.getRole() != null ? first.getRole().getName() : "?");
 
-            // Merge all rowIds
-            Set<String> mergedIds = new LinkedHashSet<>();
-            for (Permission p : perms) {
-                mergedIds.addAll(parseIds(p.getRowIds()));
-            }
+            // Collect individual row IDs
+            List<Long> rowIds = perms.stream()
+                    .map(Permission::getRowId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
 
             List<Long> permIds = perms.stream().map(Permission::getId).collect(Collectors.toList());
 
@@ -74,8 +75,7 @@ public class AdminController {
                     .who(who)
                     .entityName(first.getEntityName())
                     .action(first.getAction().name())
-                    .accessType(first.getAccessType().name())
-                    .ids(new ArrayList<>(mergedIds))
+                    .ids(rowIds)
                     .permissionIds(permIds)
                     .build());
         }
@@ -84,14 +84,11 @@ public class AdminController {
 
     @PostMapping("/permissions")
     public ResponseEntity<?> createPermission(@RequestBody PermissionRequest request) {
-        // Validate rowIds format
-        String validationError = validateRowIds(request.getRowIds());
-        if (validationError != null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "INVALID_FORMAT", "message", validationError));
+        // Validate: rowId must be a positive number or null (for INSERT)
+        if (request.getRowId() != null && request.getRowId() <= 0) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "INVALID_FORMAT", "message", "Row ID must be a positive number."));
         }
-
-        // Expand ranges: "1-5,8" → "1,2,3,4,5,8"
-        String expandedIds = expandRanges(request.getRowIds());
 
         User user = null;
         Role role = null;
@@ -106,69 +103,24 @@ public class AdminController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Try to find existing permission with same key for merge
-        Optional<Permission> existing;
-        if (user != null) {
-            existing = permissionRepository.findByUserAndEntityNameAndActionAndAccessType(
-                    user, request.getEntityName(), request.getAction(), request.getAccessType());
-        } else {
-            existing = permissionRepository.findByRoleAndEntityNameAndActionAndAccessType(
-                    role, request.getEntityName(), request.getAction(), request.getAccessType());
-        }
+        // Create a new permission record (one per row ID)
+        Permission.Builder builder = Permission.builder()
+                .entity(request.getEntityName())
+                .action(request.getAction())
+                .rowId(request.getRowId());
 
-        if (existing.isPresent()) {
-            // MERGE: add new IDs to existing permission
-            Permission perm = existing.get();
-            String merged = mergeIds(perm.getRowIds(), expandedIds);
-            perm.setRowIds(merged);
-            Permission saved = permissionManager.savePermission(perm);
-            return ResponseEntity.ok(saved);
-        } else {
-            // CREATE new permission
-            Permission.Builder builder = Permission.builder()
-                    .entity(request.getEntityName())
-                    .action(request.getAction())
-                    .accessType(request.getAccessType())
-                    .rowIds(expandedIds);
+        if (user != null)
+            builder.user(user);
+        else
+            builder.role(role);
 
-            if (user != null)
-                builder.user(user);
-            else
-                builder.role(role);
-
-            Permission saved = permissionManager.savePermission(builder.build());
-            return ResponseEntity.ok(saved);
-        }
+        Permission saved = permissionManager.savePermission(builder.build());
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/permissions/{id}")
     public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
         permissionManager.deletePermission(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/permissions/{id}/ids")
-    public ResponseEntity<Void> removeIdsFromPermission(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String idsToRemove = body.get("idsToRemove");
-        if (idsToRemove == null || idsToRemove.isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        Permission perm = permissionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Permission not found"));
-
-        Set<String> current = new LinkedHashSet<>(parseIds(perm.getRowIds()));
-        Set<String> toRemove = new HashSet<>(parseIds(idsToRemove));
-        current.removeAll(toRemove);
-
-        if (current.isEmpty()) {
-            // No IDs left → delete entire permission
-            permissionManager.deletePermission(id);
-        } else {
-            perm.setRowIds(String.join(",", current));
-            permissionManager.savePermission(perm);
-        }
-
         return ResponseEntity.ok().build();
     }
 
@@ -225,7 +177,6 @@ public class AdminController {
         if (!(child instanceof CompositeRole compositeChild)) {
             return false;
         }
-        // DFS over children to see if parent is reachable from child
         Deque<Role> stack = new ArrayDeque<>(compositeChild.getChildren());
         Set<Long> visited = new HashSet<>();
         while (!stack.isEmpty()) {
@@ -243,98 +194,10 @@ public class AdminController {
         return false;
     }
 
-    static String validateRowIds(String input) {
-        if (input == null || input.isBlank())
-            return null; // empty is valid (INSERT)
-        input = input.trim();
-        if ("*".equals(input))
-            return null; // wildcard is valid
-
-        for (String part : input.split(",")) {
-            part = part.trim();
-            if (part.isEmpty())
-                continue;
-            if ("*".equals(part))
-                continue;
-
-            if (part.contains("-")) {
-                String[] bounds = part.split("-", 2);
-                if (bounds.length != 2 || bounds[0].trim().isEmpty() || bounds[1].trim().isEmpty()) {
-                    return "Invalid range format: '" + part + "'. Use format: start-end (e.g. 1-10)";
-                }
-                try {
-                    Long.parseLong(bounds[0].trim());
-                    Long.parseLong(bounds[1].trim());
-                } catch (NumberFormatException e) {
-                    return "Range contains non-numeric values: '" + part + "'";
-                }
-            } else {
-                try {
-                    Long.parseLong(part);
-                } catch (NumberFormatException e) {
-                    return "Invalid ID: '" + part + "'. IDs must be numbers, ranges (1-10), or wildcard (*)";
-                }
-            }
-        }
-        return null;
-    }
-
-    static String expandRanges(String input) {
-        if (input == null || input.isBlank())
-            return null;
-        input = input.trim();
-        if ("*".equals(input))
-            return "*";
-
-        Set<String> result = new LinkedHashSet<>();
-        for (String part : input.split(",")) {
-            part = part.trim();
-            if (part.isEmpty())
-                continue;
-            if ("*".equals(part))
-                return "*";
-
-            if (part.contains("-")) {
-                String[] bounds = part.split("-", 2);
-                long start = Long.parseLong(bounds[0].trim());
-                long end = Long.parseLong(bounds[1].trim());
-                for (long i = Math.min(start, end); i <= Math.max(start, end); i++) {
-                    result.add(String.valueOf(i));
-                }
-            } else {
-                result.add(part);
-            }
-        }
-
-        return result.isEmpty() ? null : String.join(",", result);
-    }
-
-    static String mergeIds(String existing, String incoming) {
-        if (existing == null && incoming == null)
-            return null;
-        if ("*".equals(existing) || "*".equals(incoming))
-            return "*";
-
-        Set<String> merged = new LinkedHashSet<>();
-        merged.addAll(parseIds(existing));
-        merged.addAll(parseIds(incoming));
-
-        return merged.isEmpty() ? null : String.join(",", merged);
-    }
-
     private String groupKey(Permission p) {
         String who = p.getUser() != null
                 ? "user:" + p.getUser().getUsername()
                 : "role:" + (p.getRole() != null ? p.getRole().getId() : "null");
-        return who + "|" + p.getEntityName() + "|" + p.getAction() + "|" + p.getAccessType();
-    }
-
-    private static List<String> parseIds(String rowIds) {
-        if (rowIds == null || rowIds.isBlank())
-            return Collections.emptyList();
-        return Arrays.stream(rowIds.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        return who + "|" + p.getEntityName() + "|" + p.getAction();
     }
 }

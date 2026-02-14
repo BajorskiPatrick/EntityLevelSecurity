@@ -1,12 +1,9 @@
 package com.els.demo.domain;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "medical_records")
-@Filter(name = "elsFilter", condition = "id IN (:ids)")
-@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:ids)")
 public class MedicalRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +19,6 @@ public class MedicalRecord {
     @Column(length = 1000)
     private String treatment;
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

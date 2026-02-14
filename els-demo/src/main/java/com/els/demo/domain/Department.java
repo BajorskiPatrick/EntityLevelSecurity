@@ -1,12 +1,9 @@
 package com.els.demo.domain;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "departments")
-@Filter(name = "elsFilter", condition = "id IN (:ids)")
-@Filter(name = "elsBlacklistFilter", condition = "id NOT IN (:ids)")
 public class Department {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -6,19 +6,17 @@ public class GroupedPermissionDTO {
     private String who;
     private String entityName;
     private String action;
-    private String accessType;
-    private List<String> ids;
+    private List<Long> ids;
     private List<Long> permissionIds;
 
     public GroupedPermissionDTO() {
     }
 
-    public GroupedPermissionDTO(String who, String entityName, String action, String accessType,
-            List<String> ids, List<Long> permissionIds) {
+    public GroupedPermissionDTO(String who, String entityName, String action,
+            List<Long> ids, List<Long> permissionIds) {
         this.who = who;
         this.entityName = entityName;
         this.action = action;
-        this.accessType = accessType;
         this.ids = ids;
         this.permissionIds = permissionIds;
     }
@@ -47,19 +45,11 @@ public class GroupedPermissionDTO {
         this.action = action;
     }
 
-    public String getAccessType() {
-        return accessType;
-    }
-
-    public void setAccessType(String accessType) {
-        this.accessType = accessType;
-    }
-
-    public List<String> getIds() {
+    public List<Long> getIds() {
         return ids;
     }
 
-    public void setIds(List<String> ids) {
+    public void setIds(List<Long> ids) {
         this.ids = ids;
     }
 
@@ -97,12 +87,7 @@ public class GroupedPermissionDTO {
             return this;
         }
 
-        public Builder accessType(String accessType) {
-            this.dto.setAccessType(accessType);
-            return this;
-        }
-
-        public Builder ids(List<String> ids) {
+        public Builder ids(List<Long> ids) {
             this.dto.setIds(ids);
             return this;
         }

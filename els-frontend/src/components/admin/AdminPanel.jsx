@@ -12,9 +12,8 @@ const AdminPanel = ({ user }) => {
 
     // --- Forms State ---
     const [permForm, setPermForm] = useState({
-        targetType: 'USER', username: '', roleId: '', entity: 'Patient', action: 'SELECT', accessType: 'WHITELIST', rowIds: ''
+        targetType: 'USER', username: '', roleId: '', entity: 'Patient', action: 'SELECT', rowId: ''
     });
-    const [idsError, setIdsError] = useState('');
     const [userForm, setUserForm] = useState({ username: '', password: 'password', roleId: '' });
     const [roleForm, setRoleForm] = useState({ name: '', type: 'SIMPLE', parentId: '', childId: '' });
 
@@ -33,47 +32,22 @@ const AdminPanel = ({ user }) => {
         setTimeout(() => setToast(null), 3000);
     };
 
-    // --- Validation ---
-    const validateRowIds = (value) => {
-        if (!value || value.trim() === '') return ''; // empty is OK (INSERT)
-        const trimmed = value.trim();
-        if (trimmed === '*') return '';
-
-        const parts = trimmed.split(',');
-        for (const raw of parts) {
-            const part = raw.trim();
-            if (part === '') continue;
-            if (part === '*') continue;
-            if (part.includes('-')) {
-                const bounds = part.split('-');
-                if (bounds.length !== 2 || bounds[0].trim() === '' || bounds[1].trim() === '') {
-                    return `Invalid range: "${part}"`;
-                }
-                if (isNaN(bounds[0].trim()) || isNaN(bounds[1].trim())) {
-                    return `Non-numeric range: "${part}"`;
-                }
-            } else {
-                if (isNaN(part)) {
-                    return `Invalid ID: "${part}" — must be a number`;
-                }
-            }
-        }
-        return '';
-    };
-
-    const handleRowIdsChange = (value) => {
-        setPermForm({ ...permForm, rowIds: value });
-        setIdsError(validateRowIds(value));
-    };
-
     // --- Handlers ---
 
     const handleGrantPermission = async () => {
+        const rowIdValue = permForm.rowId.trim() === '' ? null : parseInt(permForm.rowId, 10);
+
+        if (permForm.rowId.trim() !== '' && (isNaN(rowIdValue) || rowIdValue <= 0)) {
+            showToast('Row ID must be a positive number', 'error');
+            return;
+        }
+
         const payload = {
-            ...permForm,
             username: permForm.targetType === 'USER' ? permForm.username : null,
             roleId: permForm.targetType === 'ROLE' ? permForm.roleId : null,
-            entityName: permForm.entity
+            entityName: permForm.entity,
+            action: permForm.action,
+            rowId: rowIdValue
         };
         try {
             await api.post('/admin/permissions', payload);
@@ -97,49 +71,20 @@ const AdminPanel = ({ user }) => {
         }
     };
 
-    const handleRemoveId = async (permissionIds, idToRemove) => {
+    const handleDeleteSinglePermission = async (permissionIds, idToRemove) => {
         try {
-            // Try removing from the first permission that has this ID
+            // Find and delete the permission record for this specific row ID
+            const permsResponse = await api.get('/admin/permissions');
+            const allPerms = permsResponse.data;
+
+            // Find the permission with this specific rowId within this group
             for (const pid of permissionIds) {
-                await api.delete(`/admin/permissions/${pid}/ids`, {
-                    data: { idsToRemove: idToRemove }
-                });
+                const perm = allPerms.find(p => p.id === pid && p.rowId === idToRemove);
+                if (perm) {
+                    await api.delete(`/admin/permissions/${pid}`);
+                    break;
+                }
             }
-            refreshAll();
-        } catch (e) {
-            showToast(e.response?.data?.message || e.message, 'error');
-        }
-    };
-
-    const handleCreateUser = async () => {
-        try {
-            const res = await api.post('/admin/users', { username: userForm.username, password: userForm.password });
-            const newUser = res.data;
-            if (userForm.roleId) {
-                await api.post(`/admin/users/${newUser.id}/roles/${userForm.roleId}`);
-            }
-            showToast('User created');
-            refreshAll();
-        } catch (e) {
-            showToast(e.response?.data?.message || e.message, 'error');
-        }
-    };
-
-    const handleCreateRole = async () => {
-        try {
-            const endpoint = roleForm.type === 'SIMPLE' ? '/admin/roles/simple' : '/admin/roles/composite';
-            await api.post(`${endpoint}?name=${encodeURIComponent(roleForm.name)}`);
-            showToast('Role created');
-            refreshAll();
-        } catch (e) {
-            showToast(e.response?.data?.message || e.message, 'error');
-        }
-    };
-
-    const handleLinkRoles = async () => {
-        try {
-            await api.post(`/admin/roles/${roleForm.parentId}/children/${roleForm.childId}`);
-            showToast('Roles linked');
             refreshAll();
         } catch (e) {
             showToast(e.response?.data?.message || e.message, 'error');
@@ -152,9 +97,6 @@ const AdminPanel = ({ user }) => {
         if (!ids || ids.length === 0) {
             return <span className="id-chip id-chip-empty">—</span>;
         }
-        if (ids.length === 1 && ids[0] === '*') {
-            return <span className="id-chip id-chip-all">ALL ✱</span>;
-        }
         return (
             <div className="id-chips-container">
                 {ids.map(id => (
@@ -163,7 +105,7 @@ const AdminPanel = ({ user }) => {
                         {isAdmin && (
                             <button
                                 className="id-chip-remove"
-                                onClick={() => handleRemoveId(permissionIds, id)}
+                                onClick={() => handleDeleteSinglePermission(permissionIds, id)}
                                 title={`Remove ID ${id}`}
                             >×</button>
                         )}
@@ -226,49 +168,39 @@ const AdminPanel = ({ user }) => {
                                     <option value="Department">Department</option>
                                 </select>
 
-                                <div className="row">
-                                    <select value={permForm.action} onChange={e => setPermForm({ ...permForm, action: e.target.value })}>
-                                        <option value="SELECT">SELECT</option>
-                                        <option value="INSERT">INSERT</option>
-                                        <option value="UPDATE">UPDATE</option>
-                                        <option value="DELETE">DELETE</option>
-                                    </select>
-                                    <select value={permForm.accessType} onChange={e => setPermForm({ ...permForm, accessType: e.target.value })}>
-                                        <option value="WHITELIST">Allow (Whitelist)</option>
-                                        <option value="BLACKLIST">Deny (Blacklist)</option>
-                                    </select>
-                                </div>
+                                <label>Action</label>
+                                <select value={permForm.action} onChange={e => setPermForm({ ...permForm, action: e.target.value })}>
+                                    <option value="SELECT">SELECT</option>
+                                    <option value="INSERT">INSERT</option>
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
 
+                                <label>Row ID</label>
                                 <input
-                                    placeholder="IDs: 1,2,3 or 1-10 or *"
-                                    value={permForm.rowIds}
-                                    onChange={e => handleRowIdsChange(e.target.value)}
-                                    className={idsError ? 'input-error' : ''}
+                                    type="number"
+                                    placeholder="Row ID (empty for INSERT)"
+                                    value={permForm.rowId}
+                                    onChange={e => setPermForm({ ...permForm, rowId: e.target.value })}
+                                    min="1"
                                 />
-                                {idsError ? (
-                                    <span className="helper-text helper-error">{idsError}</span>
-                                ) : (
-                                    <span className="helper-text">
-                                        Single: <code>1,2,3</code> · Range: <code>1-100</code> · All: <code>*</code> · Mix: <code>1,3-7,10</code> · Empty for INSERT
-                                    </span>
-                                )}
+                                <span className="helper-text">
+                                    Single row ID per permission. Leave empty for INSERT.
+                                </span>
 
-                                <button className="btn-primary" onClick={handleGrantPermission} disabled={!!idsError}>Grant</button>
+                                <button className="btn-primary" onClick={handleGrantPermission}>Grant</button>
                             </div>
                         )}
 
                         <div className="card list-card" style={{ gridColumn: isAdmin ? 'auto' : '1 / -1' }}>
                             <h3>Existing Permissions</h3>
                             <table>
-                                <thead><tr><th>Who</th><th>What</th><th>How</th><th>IDs</th>{isAdmin && <th>Action</th>}</tr></thead>
+                                <thead><tr><th>Who</th><th>What</th><th>IDs</th>{isAdmin && <th>Action</th>}</tr></thead>
                                 <tbody>
                                     {groupedPermissions.map((g, idx) => (
                                         <tr key={idx}>
                                             <td>{g.who}</td>
                                             <td>{g.entityName}.{g.action}</td>
-                                            <td>
-                                                <span className={`access-badge ${g.accessType}`}>{g.accessType}</span>
-                                            </td>
                                             <td>{renderIdChips(g)}</td>
                                             {isAdmin && (
                                                 <td>
@@ -347,6 +279,43 @@ const AdminPanel = ({ user }) => {
             </div>
         </div>
     );
+
+    // --- Additional Handlers ---
+
+    async function handleCreateUser() {
+        try {
+            const res = await api.post('/admin/users', { username: userForm.username, password: userForm.password });
+            const newUser = res.data;
+            if (userForm.roleId) {
+                await api.post(`/admin/users/${newUser.id}/roles/${userForm.roleId}`);
+            }
+            showToast('User created');
+            refreshAll();
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    }
+
+    async function handleCreateRole() {
+        try {
+            const endpoint = roleForm.type === 'SIMPLE' ? '/admin/roles/simple' : '/admin/roles/composite';
+            await api.post(`${endpoint}?name=${encodeURIComponent(roleForm.name)}`);
+            showToast('Role created');
+            refreshAll();
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    }
+
+    async function handleLinkRoles() {
+        try {
+            await api.post(`/admin/roles/${roleForm.parentId}/children/${roleForm.childId}`);
+            showToast('Roles linked');
+            refreshAll();
+        } catch (e) {
+            showToast(e.response?.data?.message || e.message, 'error');
+        }
+    }
 };
 
 export default AdminPanel;

@@ -43,7 +43,6 @@ public class DataLoader implements CommandLineRunner {
         com.els.domain.SimpleRole doctorRole = createSimpleRole("DOCTOR");
         com.els.domain.SimpleRole nurseRole = createSimpleRole("NURSE");
 
-        // Composite Role: HEAD_DOCTOR (Contains Doctor + Nurse permissions)
         com.els.domain.CompositeRole headDoctorRole = createCompositeRole("HEAD_DOCTOR");
         headDoctorRole.addChild(doctorRole);
         headDoctorRole.addChild(nurseRole);
@@ -67,49 +66,115 @@ public class DataLoader implements CommandLineRunner {
         Patient p4 = createPatient("Kenny McCormick", er);
         Patient p5 = createPatient("Eric Cartman", er);
 
-        createRecord("Flu", "Prescribed rest", p1);
-        createRecord("Heart Attack", "Surgery scheduled", p1);
-        createRecord("Migraine", "Painkillers", p2);
-        createRecord("Lupus", "It's never lupus", p3);
-        createRecord("Trauma", "CPR initiated", p4);
+        MedicalRecord r1 = createRecord("Flu", "Prescribed rest", p1);
+        MedicalRecord r2 = createRecord("Heart Attack", "Surgery scheduled", p1);
+        MedicalRecord r3 = createRecord("Migraine", "Painkillers", p2);
+        MedicalRecord r4 = createRecord("Lupus", "It's never lupus", p3);
+        MedicalRecord r5 = createRecord("Trauma", "CPR initiated", p4);
 
-        // --- 5. Permissions ---
-        createPermission(null, adminRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Department", Action.INSERT, AccessType.WHITELIST, null);
-        createPermission(null, adminRole, "Department", Action.UPDATE, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Department", Action.DELETE, AccessType.WHITELIST, "*");
+        // --- 5. Permissions (one record per row ID, no wildcards) ---
 
-        createPermission(null, adminRole, "Patient", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
-        createPermission(null, adminRole, "Patient", Action.UPDATE, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "Patient", Action.DELETE, AccessType.WHITELIST, "*");
+        // ADMIN: full access to all departments
+        createPermission(null, adminRole, "Department", Action.SELECT, cardio.getId());
+        createPermission(null, adminRole, "Department", Action.SELECT, neuro.getId());
+        createPermission(null, adminRole, "Department", Action.SELECT, er.getId());
+        createPermission(null, adminRole, "Department", Action.INSERT, null);
+        createPermission(null, adminRole, "Department", Action.UPDATE, cardio.getId());
+        createPermission(null, adminRole, "Department", Action.UPDATE, neuro.getId());
+        createPermission(null, adminRole, "Department", Action.UPDATE, er.getId());
+        createPermission(null, adminRole, "Department", Action.DELETE, cardio.getId());
+        createPermission(null, adminRole, "Department", Action.DELETE, neuro.getId());
+        createPermission(null, adminRole, "Department", Action.DELETE, er.getId());
 
-        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
-        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
-        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
+        // ADMIN: full access to all patients
+        createPermission(null, adminRole, "Patient", Action.SELECT, p1.getId());
+        createPermission(null, adminRole, "Patient", Action.SELECT, p2.getId());
+        createPermission(null, adminRole, "Patient", Action.SELECT, p3.getId());
+        createPermission(null, adminRole, "Patient", Action.SELECT, p4.getId());
+        createPermission(null, adminRole, "Patient", Action.SELECT, p5.getId());
+        createPermission(null, adminRole, "Patient", Action.INSERT, null);
+        createPermission(null, adminRole, "Patient", Action.UPDATE, p1.getId());
+        createPermission(null, adminRole, "Patient", Action.UPDATE, p2.getId());
+        createPermission(null, adminRole, "Patient", Action.UPDATE, p3.getId());
+        createPermission(null, adminRole, "Patient", Action.UPDATE, p4.getId());
+        createPermission(null, adminRole, "Patient", Action.UPDATE, p5.getId());
+        createPermission(null, adminRole, "Patient", Action.DELETE, p1.getId());
+        createPermission(null, adminRole, "Patient", Action.DELETE, p2.getId());
+        createPermission(null, adminRole, "Patient", Action.DELETE, p3.getId());
+        createPermission(null, adminRole, "Patient", Action.DELETE, p4.getId());
+        createPermission(null, adminRole, "Patient", Action.DELETE, p5.getId());
 
-        createPermission(null, doctorRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, nurseRole, "Department", Action.SELECT, AccessType.WHITELIST, "*");
+        // ADMIN: full access to all medical records
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, r1.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, r2.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, r3.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, r4.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.SELECT, r5.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.INSERT, null);
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, r1.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, r2.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, r3.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, r4.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.UPDATE, r5.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, r1.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, r2.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, r3.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, r4.getId());
+        createPermission(null, adminRole, "MedicalRecord", Action.DELETE, r5.getId());
 
-        createPermission(null, doctorRole, "Patient", Action.SELECT, AccessType.WHITELIST,
-                p1.getId() + "," + p2.getId());
-        createPermission(null, doctorRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
+        // DOCTOR: view all departments
+        createPermission(null, doctorRole, "Department", Action.SELECT, cardio.getId());
+        createPermission(null, doctorRole, "Department", Action.SELECT, neuro.getId());
+        createPermission(null, doctorRole, "Department", Action.SELECT, er.getId());
 
-        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, doctorRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
-        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
-        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, AccessType.WHITELIST, "*");
+        // NURSE: view all departments
+        createPermission(null, nurseRole, "Department", Action.SELECT, cardio.getId());
+        createPermission(null, nurseRole, "Department", Action.SELECT, neuro.getId());
+        createPermission(null, nurseRole, "Department", Action.SELECT, er.getId());
 
-        createPermission(null, nurseRole, "Patient", Action.SELECT, AccessType.WHITELIST,
-                p4.getId() + "," + p5.getId());
-        createPermission(null, nurseRole, "Patient", Action.INSERT, AccessType.WHITELIST, null);
+        // DOCTOR: specific patients (p1, p2) + can INSERT
+        createPermission(null, doctorRole, "Patient", Action.SELECT, p1.getId());
+        createPermission(null, doctorRole, "Patient", Action.SELECT, p2.getId());
+        createPermission(null, doctorRole, "Patient", Action.INSERT, null);
 
-        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, AccessType.WHITELIST, "*");
-        createPermission(null, nurseRole, "MedicalRecord", Action.INSERT, AccessType.WHITELIST, null);
-        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, AccessType.WHITELIST, "*");
+        // DOCTOR: full access to all medical records
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, r1.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, r2.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, r3.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, r4.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.SELECT, r5.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.INSERT, null);
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, r1.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, r2.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, r3.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, r4.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.UPDATE, r5.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, r1.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, r2.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, r3.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, r4.getId());
+        createPermission(null, doctorRole, "MedicalRecord", Action.DELETE, r5.getId());
 
-        createPermission(drHouse, null, "Patient", Action.SELECT, AccessType.WHITELIST, String.valueOf(p3.getId()));
+        // NURSE: specific patients (p4, p5) + can INSERT
+        createPermission(null, nurseRole, "Patient", Action.SELECT, p4.getId());
+        createPermission(null, nurseRole, "Patient", Action.SELECT, p5.getId());
+        createPermission(null, nurseRole, "Patient", Action.INSERT, null);
+
+        // NURSE: access to medical records + INSERT + UPDATE (no DELETE)
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, r1.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, r2.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, r3.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, r4.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.SELECT, r5.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.INSERT, null);
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, r1.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, r2.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, r3.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, r4.getId());
+        createPermission(null, nurseRole, "MedicalRecord", Action.UPDATE, r5.getId());
+
+        // dr_house (user-level): additional patient p3
+        createPermission(drHouse, null, "Patient", Action.SELECT, p3.getId());
 
         System.out.println("--- DEMO DATA LOADED ---");
     }
@@ -162,14 +227,13 @@ public class DataLoader implements CommandLineRunner {
         return medicalRecordRepository.save(mr);
     }
 
-    private void createPermission(User user, Role role, String entity, Action action, AccessType type, String ids) {
+    private void createPermission(User user, Role role, String entity, Action action, Long rowId) {
         Permission p = Permission.builder()
                 .user(user)
                 .role(role)
                 .entity(entity)
                 .action(action)
-                .accessType(type)
-                .rowIds(ids)
+                .rowId(rowId)
                 .build();
         permissionManager.savePermission(p);
     }

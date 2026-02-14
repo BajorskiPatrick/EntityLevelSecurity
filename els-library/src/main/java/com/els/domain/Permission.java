@@ -1,7 +1,11 @@
 package com.els.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
+@FilterDef(name = "elsFilter", parameters = @ParamDef(name = "ids", type = Long.class))
+@FilterDef(name = "elsBlacklistFilter", parameters = @ParamDef(name = "ids", type = Long.class))
 @Entity
 @Table(name = "els_permissions")
 public class Permission {
@@ -25,12 +29,8 @@ public class Permission {
     @Column(nullable = false)
     private Action action;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AccessType accessType;
-
-    @Column(columnDefinition = "TEXT")
-    private String rowIds;
+    @Column(name = "row_id")
+    private Long rowId;
 
     public boolean isUserPermission() {
         return user != null;
@@ -76,20 +76,12 @@ public class Permission {
         this.action = action;
     }
 
-    public AccessType getAccessType() {
-        return accessType;
+    public Long getRowId() {
+        return rowId;
     }
 
-    public void setAccessType(AccessType accessType) {
-        this.accessType = accessType;
-    }
-
-    public String getRowIds() {
-        return rowIds;
-    }
-
-    public void setRowIds(String rowIds) {
-        this.rowIds = rowIds;
+    public void setRowId(Long rowId) {
+        this.rowId = rowId;
     }
 
     public static Builder builder() {
@@ -123,13 +115,8 @@ public class Permission {
             return this;
         }
 
-        public Builder accessType(AccessType accessType) {
-            this.permission.setAccessType(accessType);
-            return this;
-        }
-
-        public Builder rowIds(String rowIds) {
-            this.permission.setRowIds(rowIds);
+        public Builder rowId(Long rowId) {
+            this.permission.setRowId(rowId);
             return this;
         }
 

@@ -6,10 +6,10 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Whitelist strategy: grants access to rows whose IDs are IN the permission
- * set.
+ * Whitelist strategy: grants access only to rows whose IDs are IN the
+ * permission set.
  *
- * - Wildcard (*) → allow access to ALL rows
+ * - Empty IDs list → deny access to ALL rows (NONE)
  * - Specific IDs → allow access only to rows IN the ID list
  * - Uses Hibernate filter "elsFilter" (WHERE id IN :ids)
  * - Row check: targetId must be contained in the permitted set
@@ -18,9 +18,9 @@ import org.springframework.stereotype.Component;
 public class WhitelistStrategy implements AccessStrategy {
 
     @Override
-    public FilterCondition generateCondition(List<Object> rowIds) {
-        if (rowIds.stream().anyMatch("*"::equals)) {
-            return new FilterCondition("ALL", List.of());
+    public FilterCondition generateCondition(List<Long> rowIds) {
+        if (rowIds == null || rowIds.isEmpty()) {
+            return new FilterCondition("NONE", List.of());
         }
         return new FilterCondition("IN", rowIds);
     }
