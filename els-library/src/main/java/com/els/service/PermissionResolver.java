@@ -2,11 +2,13 @@ package com.els.service;
 
 import com.els.cache.PermissionCache;
 import com.els.cache.PermissionKey;
+import com.els.config.AccessTypeConfig;
 import com.els.domain.*;
 import com.els.repository.PermissionRepository;
 import com.els.strategies.AccessStrategy;
 import com.els.strategies.AccessStrategy.FilterCondition;
 import org.springframework.stereotype.Service;
+import com.els.config.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,6 +19,8 @@ public class PermissionResolver {
     private final PermissionRepository permissionRepository;
     private final PermissionCache permissionCache;
     private final Map<AccessType, AccessStrategy> strategies;
+    private final AccessStrategy defaultStrategy;
+    private final AccessType defaultStrategyType;
 
     public PermissionResolver(PermissionRepository permissionRepository,
             PermissionCache permissionCache,
@@ -32,6 +36,9 @@ public class PermissionResolver {
                 this.strategies.put(AccessType.BLACKLIST, strategy);
             }
         });
+        // ! TYMCZASOWE - pobierz oba (typ i instancję strategii)
+        this.defaultStrategyType = AccessTypeConfig.DEFAULT_STRATEGY;
+        this.defaultStrategy = this.strategies.get(this.defaultStrategyType);
     }
 
     public FilterCondition resolve(User user, String entityName, Action action) {
@@ -77,86 +84,44 @@ public class PermissionResolver {
     }
 
     private FilterCondition aggregatePermissions(List<Permission> permissions, Action action) {
+        // Używaj globalnie ustawionej strategii
+        AccessType configuredStrategy = defaultStrategyType;
+
         if (action == Action.INSERT) {
-            boolean hasBlacklist = permissions.stream()
-                    .anyMatch(p -> p.getAccessType() == AccessType.BLACKLIST);
-            if (hasBlacklist) {
-                return new FilterCondition("NONE", Collections.emptyList());
+            // Dla WHITELIST: pozwól jeśli są uprawnienia
+            if (configuredStrategy == AccessType.WHITELIST) {
+                boolean hasPermission = permissions.stream()
+                        .anyMatch(p -> p.getAccessType() == AccessType.WHITELIST);
+                return hasPermission
+                        ? new FilterCondition("ALL", Collections.emptyList())
+                        : new FilterCondition("NONE", Collections.emptyList());
+            } else {
+                // Dla BLACKLIST: odmów jeśli są zakazy
+                boolean hasBlacklist = permissions.stream()
+                        .anyMatch(p -> p.getAccessType() == AccessType.BLACKLIST);
+                return hasBlacklist
+                        ? new FilterCondition("NONE", Collections.emptyList())
+                        : new FilterCondition("ALL", Collections.emptyList());
             }
-            boolean canInsert = permissions.stream()
-                    .anyMatch(p -> p.getAccessType() == AccessType.WHITELIST);
-            return canInsert
-                    ? new FilterCondition("ALL", Collections.emptyList())
-                    : new FilterCondition("NONE", Collections.emptyList());
         }
 
-        // Group permissions by access type and collect ids as Objects
-        Map<AccessType, List<Object>> idsByType = permissions.stream()
-                .collect(Collectors.groupingBy(Permission::getAccessType,
-                        Collectors.mapping(p -> parseIds(p.getRowIds()), Collectors.toList())))
-                .entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream()
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toList())));
+        // Zbierz IDs tylko dla skonfigurowanej strategii
+        List<Object> ids = permissions.stream()
+                .filter(p -> p.getAccessType() == configuredStrategy)
+                .flatMap(p -> parseIds(p.getRowIds()).stream())
+                .collect(Collectors.toList());
 
-        // Default deny when no permissions
-        if (idsByType.isEmpty()) {
-            return new FilterCondition("NONE", Collections.emptyList());
-        }
-
-        // Delegate to Strategy pattern for each access type
-        FilterCondition whitelistCondition = applyStrategy(idsByType, AccessType.WHITELIST);
-        FilterCondition blacklistCondition = applyStrategy(idsByType, AccessType.BLACKLIST);
-
-        // Handle deny-all from blacklist first (highest priority)
-        if (blacklistCondition != null && "NONE".equals(blacklistCondition.operator())) {
-            return blacklistCondition;
-        }
-
-        // If no whitelist, fall back to blacklist (NOT IN) or deny all
-        if (whitelistCondition == null) {
-            if (blacklistCondition != null) {
-                return blacklistCondition;
+        // Jeśli brak uprawnień dla skonfigurowanej strategii
+        if (ids.isEmpty()) {
+            if (configuredStrategy == AccessType.WHITELIST) {
+                return new FilterCondition("NONE", Collections.emptyList()); // WHITELIST: brak = odmów
+            } else {
+                return new FilterCondition("ALL", Collections.emptyList()); // BLACKLIST: brak = pozwól
             }
-            return new FilterCondition("NONE", Collections.emptyList());
         }
 
-        // Whitelist exists
-        if ("ALL".equals(whitelistCondition.operator())) {
-            // Allow all, but exclude blacklisted specific IDs if any
-            if (blacklistCondition != null && !blacklistCondition.ids().isEmpty()) {
-                return blacklistCondition; // NOT IN list acts on full set
-            }
-            return whitelistCondition; // ALL
-        }
-
-        // Specific allowed IDs minus blacklisted ones
-        List<Object> allowed = new ArrayList<>(whitelistCondition.ids());
-        if (blacklistCondition != null) {
-            allowed.removeAll(blacklistCondition.ids());
-        }
-
-        if (allowed.isEmpty()) {
-            return new FilterCondition("NONE", Collections.emptyList());
-        }
-
-        return new FilterCondition("IN", allowed);
-    }
-
-    /**
-     * Delegates to the appropriate AccessStrategy (Strategy Pattern).
-     * Returns null if no permissions exist for the given access type.
-     */
-    private FilterCondition applyStrategy(Map<AccessType, List<Object>> idsByType, AccessType type) {
-        List<Object> ids = idsByType.get(type);
-        if (ids == null) {
-            return null;
-        }
-        AccessStrategy strategy = strategies.get(type);
-        if (strategy == null) {
-            return null;
-        }
-        return strategy.generateCondition(ids);
+        // Użyj defaultStrategy do generacji warunku
+        return defaultStrategy.generateCondition(ids);
     }
 
     private List<Object> parseIds(String rowIds) {

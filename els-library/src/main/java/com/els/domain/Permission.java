@@ -21,6 +21,10 @@ public class Permission {
     @Column(nullable = false)
     private String entityName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Action action;
+
     @Column(columnDefinition = "bigint")
     private Long rowId;
 
@@ -58,6 +62,14 @@ public class Permission {
 
     public void setEntityName(String entityName) {
         this.entityName = entityName;
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
+    public void setAction(Action action) {
+        this.action = action;
     }
 
     public Long getRowId() {
