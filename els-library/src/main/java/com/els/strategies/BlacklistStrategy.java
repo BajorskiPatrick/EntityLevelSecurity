@@ -26,6 +26,14 @@ public class BlacklistStrategy implements AccessStrategy {
     }
 
     @Override
+    public FilterCondition generateInsertCondition(List<Long> rowIds) {
+        if (rowIds == null || rowIds.isEmpty()) {
+            return new FilterCondition("ALL", List.of());
+        }
+        return new FilterCondition("NONE", List.of());
+    }
+
+    @Override
     public String getFilterName() {
         return "elsBlacklistFilter";
     }

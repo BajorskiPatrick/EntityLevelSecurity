@@ -70,24 +70,19 @@ public class PermissionResolver {
     }
 
     private FilterCondition aggregatePermissions(List<Permission> permissions, Action action) {
-        if (permissions.isEmpty()) {
-            return new FilterCondition("NONE", Collections.emptyList());
-        }
-
-        // INSERT: table-level — if any permission exists, allow; otherwise deny
+        // INSERT
         if (action == Action.INSERT) {
-            return new FilterCondition("ALL", Collections.emptyList());
+            // We don't care about specific rows so we only pass empty or nonempty list to strategy
+            List<Long> indicatorList = permissions.isEmpty() ? Collections.emptyList() : List.of(1L);
+            return activeStrategy.generateInsertCondition(indicatorList);
         }
 
-        // SELECT / UPDATE / DELETE: collect all row IDs from individual permission
-        // records
         List<Long> rowIds = permissions.stream()
                 .map(Permission::getRowId)
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Delegate to the global strategy (Whitelist or Blacklist)
         return activeStrategy.generateCondition(rowIds);
     }
 }

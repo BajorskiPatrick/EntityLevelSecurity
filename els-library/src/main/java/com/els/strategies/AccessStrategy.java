@@ -9,6 +9,8 @@ public interface AccessStrategy {
 
     String getFilterName();
 
+    FilterCondition generateInsertCondition(List<Long> rowIds);
+
     boolean isIdPermitted(Long targetId, Set<Long> permittedIds);
 
     /**

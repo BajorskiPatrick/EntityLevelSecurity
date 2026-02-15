@@ -26,6 +26,14 @@ public class WhitelistStrategy implements AccessStrategy {
     }
 
     @Override
+    public FilterCondition generateInsertCondition(List<Long> rowIds) {
+        if (rowIds == null || rowIds.isEmpty()) {
+            return new FilterCondition("NONE", List.of());
+        }
+        return new FilterCondition("ALL", List.of());
+    }
+
+    @Override
     public String getFilterName() {
         return "elsFilter";
     }
