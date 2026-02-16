@@ -109,4 +109,10 @@ public class HospitalService {
     public void deleteMedicalRecord(Long recordId) {
         medicalRecordRepository.deleteById(recordId);
     }
+
+    @Secure
+    @Transactional(readOnly = true)
+    public List<Patient> getPatientsWithDepartmentJoined() {
+        return patientRepository.findPatientsWithDepartment();
+    }
 }

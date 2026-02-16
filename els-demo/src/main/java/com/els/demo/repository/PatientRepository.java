@@ -6,4 +6,7 @@ import java.util.List;
 
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     List<Patient> findByDepartmentId(Long departmentId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Patient p JOIN FETCH p.department")
+    List<Patient> findPatientsWithDepartment();
 }

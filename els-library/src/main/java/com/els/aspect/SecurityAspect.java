@@ -5,6 +5,7 @@ import com.els.context.SecurityContext;
 import com.els.domain.Action;
 import com.els.domain.User;
 import com.els.service.PermissionResolver;
+import com.els.service.ResultSecurityValidator;
 import com.els.strategies.AccessStrategy;
 import com.els.strategies.AccessStrategy.FilterCondition;
 import jakarta.persistence.Entity;
@@ -55,13 +56,17 @@ public class SecurityAspect {
     /** Cache for resolved method metadata (Action + entity name). */
     private final Map<String, MethodSecurityMeta> metaCache = new ConcurrentHashMap<>();
 
+    private final ResultSecurityValidator resultSecurityValidator;
+
     public SecurityAspect(PermissionResolver permissionResolver, SecurityContext securityContext,
             EntityManager entityManager,
-            @Qualifier("activeAccessStrategy") AccessStrategy activeStrategy) {
+            @Qualifier("activeAccessStrategy") AccessStrategy activeStrategy,
+            ResultSecurityValidator resultSecurityValidator) {
         this.permissionResolver = permissionResolver;
         this.securityContext = securityContext;
         this.entityManager = entityManager;
         this.activeStrategy = activeStrategy;
+        this.resultSecurityValidator = resultSecurityValidator;
     }
 
     @Around("@annotation(com.els.annotation.Secure)")
@@ -85,7 +90,7 @@ public class SecurityAspect {
 
         switch (action) {
             case SELECT:
-                return handleSelect(joinPoint, condition);
+                return handleSelect(joinPoint, condition, currentUser);
             case INSERT:
                 return handleInsert(joinPoint, condition);
             case UPDATE:
@@ -98,10 +103,12 @@ public class SecurityAspect {
 
     // ---- SELECT: Hibernate filter application ----
 
-    private Object handleSelect(ProceedingJoinPoint joinPoint, FilterCondition condition) throws Throwable {
+    private Object handleSelect(ProceedingJoinPoint joinPoint, FilterCondition condition, User currentUser)
+            throws Throwable {
         String operator = condition.operator();
         Session session = entityManager.unwrap(Session.class);
         boolean filterEnabled = false;
+        Object result;
 
         try {
             if ("NONE".equals(operator)) {
@@ -131,13 +138,18 @@ public class SecurityAspect {
                 }
             }
 
-            return joinPoint.proceed();
+            result = joinPoint.proceed();
         } finally {
             if (filterEnabled) {
                 session.disableFilter("elsFilter");
                 session.disableFilter("elsBlacklistFilter");
             }
         }
+
+        // Post-execution validation for JOINs / Eager loading
+        resultSecurityValidator.validate(result, currentUser, Action.SELECT);
+
+        return result;
     }
 
     // ---- INSERT: table-level allow / deny ----
