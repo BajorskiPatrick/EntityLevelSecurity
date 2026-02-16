@@ -1,7 +1,5 @@
 package com.els.service;
 
-import com.els.cache.PermissionCache;
-import com.els.cache.PermissionKey;
 import com.els.domain.*;
 import com.els.repository.PermissionRepository;
 import com.els.strategies.AccessStrategy;
@@ -16,23 +14,16 @@ import java.util.stream.Collectors;
 public class PermissionResolver {
 
     private final PermissionRepository permissionRepository;
-    private final PermissionCache permissionCache;
+
     private final AccessStrategy activeStrategy;
 
     public PermissionResolver(PermissionRepository permissionRepository,
-            PermissionCache permissionCache,
             @Qualifier("activeAccessStrategy") AccessStrategy activeStrategy) {
         this.permissionRepository = permissionRepository;
-        this.permissionCache = permissionCache;
         this.activeStrategy = activeStrategy;
     }
 
     public FilterCondition resolve(User user, String entityName, Action action) {
-        PermissionKey key = new PermissionKey(user.getUsername(), entityName, action);
-        if (permissionCache.contains(key)) {
-            return permissionCache.get(key);
-        }
-
         // 1. Gather all roles (traverse Composite pattern hierarchy)
         Set<Role> effectiveRoles = new HashSet<>();
         if (user.getRoles() != null) {
@@ -49,12 +40,7 @@ public class PermissionResolver {
         }
 
         // 3. Aggregate using global strategy
-        FilterCondition condition = aggregatePermissions(permissions, action);
-
-        // 4. Cache
-        permissionCache.put(key, condition);
-
-        return condition;
+        return aggregatePermissions(permissions, action);
     }
 
     /**
@@ -72,7 +58,8 @@ public class PermissionResolver {
     private FilterCondition aggregatePermissions(List<Permission> permissions, Action action) {
         // INSERT
         if (action == Action.INSERT) {
-            // We don't care about specific rows so we only pass empty or nonempty list to strategy
+            // We don't care about specific rows so we only pass empty or nonempty list to
+            // strategy
             List<Long> indicatorList = permissions.isEmpty() ? Collections.emptyList() : List.of(1L);
             return activeStrategy.generateInsertCondition(indicatorList);
         }
