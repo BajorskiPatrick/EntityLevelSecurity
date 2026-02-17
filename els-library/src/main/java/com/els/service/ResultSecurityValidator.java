@@ -15,16 +15,7 @@ import org.springframework.stereotype.Service;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Validates security rules on the result of a SELECT query, recursively
- * checking
- * nested entities.
- * Ensures that even if an entity is fetched via JOIN/Eager Loading, the user
- * has
- * access to it.
- */
 @Service
 public class ResultSecurityValidator {
 
@@ -32,9 +23,6 @@ public class ResultSecurityValidator {
 
     private final PermissionResolver permissionResolver;
     private final AccessStrategy activeStrategy;
-
-    // Cache Class -> List of fields to traverse (non-primitive, non-ignored)
-    private final Map<Class<?>, List<Field>> traversalCache = new ConcurrentHashMap<>();
 
     @org.springframework.beans.factory.annotation.Value("${els.join.behavior:STRICT}")
     private String joinBehaviorConfig;
@@ -53,7 +41,8 @@ public class ResultSecurityValidator {
 
     public enum JoinBehavior {
         STRICT, // Filter out parent if child is denied
-        ID_ONLY // Replace denied child with ID-only object
+        ID_ONLY, // Replace denied child with ID-only object
+        ALLOW // Do not validate children (allow all JOINs if parent is allowed)
     }
 
     public ResultSecurityValidator(PermissionResolver permissionResolver,
@@ -62,44 +51,25 @@ public class ResultSecurityValidator {
         this.activeStrategy = activeStrategy;
     }
 
-    // For testing/manual config
     public void setJoinBehavior(JoinBehavior behavior) {
         this.joinBehavior = behavior;
     }
 
-    /**
-     * Validates the given result object graph.
-     * Use Identity set to track visited instances and avoid cycles.
-     */
-    /**
-     * Validates and filters the given result object graph.
-     * Returns the filtered result.
-     * If a single entity is invalid, returns null.
-     * If a collection contains invalid entities, they are removed.
-     */
     public Object validate(Object result, User user, Action action) {
         if (result == null) {
             return null;
         }
-        // Cache validated results (Object -> ValidatedObject or null)
-        Map<Object, Object> validationCache = new IdentityHashMap<>();
-        // Track in-progress objects for cycle detection
+        // Track in-progress objects for cycle detection ONLY
+        // No result caching (validationCache) and no permission caching
+        // (conditionCache)
         Set<Object> inProgress = Collections.newSetFromMap(new IdentityHashMap<>());
-        // Cache FilterCondition per entity name to avoid repeated DB lookups
-        Map<String, FilterCondition> conditionCache = new HashMap<>();
 
-        return traverseAndValidate(result, user, action, validationCache, inProgress, conditionCache);
+        return traverseAndValidate(result, user, action, inProgress);
     }
 
-    private Object traverseAndValidate(Object node, User user, Action action, Map<Object, Object> validationCache,
-            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
+    private Object traverseAndValidate(Object node, User user, Action action, Set<Object> inProgress) {
         if (node == null) {
             return null;
-        }
-
-        // Check if already validated
-        if (validationCache.containsKey(node)) {
-            return validationCache.get(node);
         }
 
         // Check cycle (currently visiting)
@@ -107,16 +77,14 @@ public class ResultSecurityValidator {
             return node; // Assume valid to break cycle
         }
 
-        Object result = doValidate(node, user, action, validationCache, inProgress, conditionCache);
+        Object result = doValidate(node, user, action, inProgress);
 
         inProgress.remove(node);
-        validationCache.put(node, result);
 
         return result;
     }
 
-    private Object doValidate(Object node, User user, Action action, Map<Object, Object> validationCache,
-            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
+    private Object doValidate(Object node, User user, Action action, Set<Object> inProgress) {
 
         // Handle Iterables (List, Set, etc.)
         if (node instanceof Iterable<?> iterable) {
@@ -128,8 +96,7 @@ public class ResultSecurityValidator {
             }
 
             for (Object item : iterable) {
-                Object validatedItem = traverseAndValidate(item, user, action, validationCache, inProgress,
-                        conditionCache);
+                Object validatedItem = traverseAndValidate(item, user, action, inProgress);
                 if (validatedItem != null) {
                     filteredCollection.add(validatedItem);
                 }
@@ -141,8 +108,7 @@ public class ResultSecurityValidator {
         if (node instanceof Map<?, ?> map) {
             Map<Object, Object> filteredMap = new HashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
-                Object validatedValue = traverseAndValidate(entry.getValue(), user, action, validationCache, inProgress,
-                        conditionCache);
+                Object validatedValue = traverseAndValidate(entry.getValue(), user, action, inProgress);
                 if (validatedValue != null) {
                     filteredMap.put(entry.getKey(), validatedValue);
                 }
@@ -155,8 +121,7 @@ public class ResultSecurityValidator {
             if (node instanceof Object[] objArray) {
                 List<Object> filteredList = new ArrayList<>();
                 for (Object item : objArray) {
-                    Object validatedItem = traverseAndValidate(item, user, action, validationCache, inProgress,
-                            conditionCache);
+                    Object validatedItem = traverseAndValidate(item, user, action, inProgress);
                     if (validatedItem != null) {
                         filteredList.add(validatedItem);
                     }
@@ -181,7 +146,7 @@ public class ResultSecurityValidator {
 
         // If it's an Entity, validate permissions
         if (clazz.isAnnotationPresent(Entity.class)) {
-            if (!isEntityAllowed(node, clazz, user, action, conditionCache)) {
+            if (!isEntityAllowed(node, clazz, user, action)) {
                 if (joinBehavior == JoinBehavior.ID_ONLY) {
                     Object idOnlyProxy = createIdOnlyProxy(node, clazz);
                     if (idOnlyProxy != null) {
@@ -193,7 +158,7 @@ public class ResultSecurityValidator {
         }
 
         // Traverse fields
-        return traverseFields(node, clazz, user, action, validationCache, inProgress, conditionCache);
+        return traverseFields(node, clazz, user, action, inProgress);
     }
 
     private Object createIdOnlyProxy(Object original, Class<?> clazz) {
@@ -224,8 +189,7 @@ public class ResultSecurityValidator {
         return null;
     }
 
-    private boolean isEntityAllowed(Object entity, Class<?> entityClass, User user, Action action,
-            Map<String, FilterCondition> conditionCache) {
+    private boolean isEntityAllowed(Object entity, Class<?> entityClass, User user, Action action) {
         String entityName = entityClass.getSimpleName();
         Long id = extractId(entity, entityClass);
 
@@ -234,8 +198,8 @@ public class ResultSecurityValidator {
             return true;
         }
 
-        FilterCondition condition = conditionCache.computeIfAbsent(entityName,
-                k -> permissionResolver.resolve(user, k, action));
+        // No caching of conditions
+        FilterCondition condition = permissionResolver.resolve(user, entityName, action);
 
         String operator = condition.operator();
 
@@ -289,28 +253,25 @@ public class ResultSecurityValidator {
     }
 
     private Object traverseFields(Object node, Class<?> clazz, User user, Action action,
-            Map<Object, Object> validationCache,
-            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
-        List<Field> fields = traversalCache.computeIfAbsent(clazz, this::getTraversableFields);
+            Set<Object> inProgress) {
+
+        // If configured to ALLOW all joins, do not validate children
+        if (joinBehavior == JoinBehavior.ALLOW) {
+            return node;
+        }
+
+        // No caching of traversable fields
+        List<Field> fields = getTraversableFields(clazz);
 
         for (Field field : fields) {
             try {
                 Object value = field.get(node);
                 if (value != null) {
-                    Object validatedValue = traverseAndValidate(value, user, action, validationCache, inProgress,
-                            conditionCache);
+                    Object validatedValue = traverseAndValidate(value, user, action, inProgress);
 
                     if (validatedValue != value) {
                         // Value has changed (filtered or sanitized)
                         if (validatedValue == null) {
-                            // If STRICT mode, or if ID_ONLY failed to create proxy -> invalidate parent
-                            // to avoid leaking partial state or unexpected nulls?
-                            // Or should we just set to null in ID_ONLY mode?
-                            // Let's assume STRICT requirement applies if we can't produce a valid result.
-                            // BUT, for collections, null items are already removed by traverseAndValidate
-                            // logic for Iterables.
-                            // This check is for single fields.
-
                             if (joinBehavior == JoinBehavior.STRICT) {
                                 return null;
                             }
@@ -335,9 +296,6 @@ public class ResultSecurityValidator {
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
-                // Skip static and transient fields?
-                // For now, assume any object reference could be an entity or contain one.
-                // Filter out primitives and basic types early to save reflection time in loop
                 if (!isBasicType(field.getType())) {
                     field.setAccessible(true);
                     fields.add(field);
