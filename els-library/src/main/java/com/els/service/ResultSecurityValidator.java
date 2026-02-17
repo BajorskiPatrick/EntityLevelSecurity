@@ -59,9 +59,7 @@ public class ResultSecurityValidator {
         if (result == null) {
             return null;
         }
-        // Track in-progress objects for cycle detection ONLY
-        // No result caching (validationCache) and no permission caching
-        // (conditionCache)
+
         Set<Object> inProgress = Collections.newSetFromMap(new IdentityHashMap<>());
 
         return traverseAndValidate(result, user, action, inProgress);
@@ -72,9 +70,8 @@ public class ResultSecurityValidator {
             return null;
         }
 
-        // Check cycle (currently visiting)
         if (!inProgress.add(node)) {
-            return node; // Assume valid to break cycle
+            return node;
         }
 
         Object result = doValidate(node, user, action, inProgress);
