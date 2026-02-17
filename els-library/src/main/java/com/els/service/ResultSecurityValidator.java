@@ -46,58 +46,104 @@ public class ResultSecurityValidator {
      * Validates the given result object graph.
      * Use Identity set to track visited instances and avoid cycles.
      */
-    public void validate(Object result, User user, Action action) {
+    /**
+     * Validates and filters the given result object graph.
+     * Returns the filtered result.
+     * If a single entity is invalid, returns null.
+     * If a collection contains invalid entities, they are removed.
+     */
+    public Object validate(Object result, User user, Action action) {
         if (result == null) {
-            return;
+            return null;
         }
-        // Use IdentityHashMap to track visited objects to prevent cycles
-        Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        // Cache validated results (Object -> ValidatedObject or null)
+        Map<Object, Object> validationCache = new IdentityHashMap<>();
+        // Track in-progress objects for cycle detection
+        Set<Object> inProgress = Collections.newSetFromMap(new IdentityHashMap<>());
         // Cache FilterCondition per entity name to avoid repeated DB lookups
         Map<String, FilterCondition> conditionCache = new HashMap<>();
 
-        traverseAndValidate(result, user, action, visited, conditionCache);
+        return traverseAndValidate(result, user, action, validationCache, inProgress, conditionCache);
     }
 
-    private void traverseAndValidate(Object node, User user, Action action, Set<Object> visited,
-            Map<String, FilterCondition> conditionCache) {
+    private Object traverseAndValidate(Object node, User user, Action action, Map<Object, Object> validationCache,
+            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
         if (node == null) {
-            return;
+            return null;
         }
 
-        // Check cycle
-        if (!visited.add(node)) {
-            return;
+        // Check if already validated
+        if (validationCache.containsKey(node)) {
+            return validationCache.get(node);
         }
+
+        // Check cycle (currently visiting)
+        if (!inProgress.add(node)) {
+            return node; // Assume valid to break cycle
+        }
+
+        Object result = doValidate(node, user, action, validationCache, inProgress, conditionCache);
+
+        inProgress.remove(node);
+        validationCache.put(node, result);
+
+        return result;
+    }
+
+    private Object doValidate(Object node, User user, Action action, Map<Object, Object> validationCache,
+            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
 
         // Handle Iterables (List, Set, etc.)
         if (node instanceof Iterable<?> iterable) {
-            for (Object item : iterable) {
-                traverseAndValidate(item, user, action, visited, conditionCache);
+            Collection<Object> filteredCollection;
+            if (node instanceof Set) {
+                filteredCollection = new HashSet<>();
+            } else {
+                filteredCollection = new ArrayList<>();
             }
-            return;
+
+            for (Object item : iterable) {
+                Object validatedItem = traverseAndValidate(item, user, action, validationCache, inProgress,
+                        conditionCache);
+                if (validatedItem != null) {
+                    filteredCollection.add(validatedItem);
+                }
+            }
+            return filteredCollection;
         }
 
         // Handle Maps
         if (node instanceof Map<?, ?> map) {
-            for (Object value : map.values()) {
-                traverseAndValidate(value, user, action, visited, conditionCache);
+            Map<Object, Object> filteredMap = new HashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                Object validatedValue = traverseAndValidate(entry.getValue(), user, action, validationCache, inProgress,
+                        conditionCache);
+                if (validatedValue != null) {
+                    filteredMap.put(entry.getKey(), validatedValue);
+                }
             }
-            return;
+            return filteredMap;
         }
 
         // Handle Arrays
         if (node.getClass().isArray()) {
             if (node instanceof Object[] objArray) {
+                List<Object> filteredList = new ArrayList<>();
                 for (Object item : objArray) {
-                    traverseAndValidate(item, user, action, visited, conditionCache);
+                    Object validatedItem = traverseAndValidate(item, user, action, validationCache, inProgress,
+                            conditionCache);
+                    if (validatedItem != null) {
+                        filteredList.add(validatedItem);
+                    }
                 }
+                return filteredList.toArray();
             }
-            return;
+            return node;
         }
 
         // Check for Hibernate Proxy initialization
         if (!Hibernate.isInitialized(node)) {
-            return;
+            return node;
         }
 
         // It's a single object (potentially an Entity)
@@ -105,26 +151,28 @@ public class ResultSecurityValidator {
 
         // Skip basic Java types to improve performance
         if (isBasicType(clazz)) {
-            return;
+            return node;
         }
 
         // If it's an Entity, validate permissions
         if (clazz.isAnnotationPresent(Entity.class)) {
-            validateEntity(node, clazz, user, action, conditionCache);
+            if (!isEntityAllowed(node, clazz, user, action, conditionCache)) {
+                return null;
+            }
         }
 
         // Traverse fields
-        traverseFields(node, clazz, user, action, visited, conditionCache);
+        return traverseFields(node, clazz, user, action, validationCache, inProgress, conditionCache);
     }
 
-    private void validateEntity(Object entity, Class<?> entityClass, User user, Action action,
+    private boolean isEntityAllowed(Object entity, Class<?> entityClass, User user, Action action,
             Map<String, FilterCondition> conditionCache) {
         String entityName = entityClass.getSimpleName();
         Long id = extractId(entity, entityClass);
 
         if (id == null) {
             log.warn("Could not extract ID for entity {}, skipping validation.", entityName);
-            return;
+            return true;
         }
 
         FilterCondition condition = conditionCache.computeIfAbsent(entityName,
@@ -145,11 +193,11 @@ public class ResultSecurityValidator {
         }
 
         if (!allowed) {
-            log.warn("Result Validation Failed | User: {} | Entity: {} | ID: {} | Action: {}",
+            log.warn("Result Validation Failed | User: {} | Entity: {} | ID: {} | Action: {} - Filtering out.",
                     user.getUsername(), entityName, id, action);
-            throw new SecurityException(
-                    "Access Denied: You do not have permission to view " + entityName + " with ID " + id);
+            return false;
         }
+        return true;
     }
 
     private Long extractId(Object entity, Class<?> clazz) {
@@ -181,20 +229,29 @@ public class ResultSecurityValidator {
         return null;
     }
 
-    private void traverseFields(Object node, Class<?> clazz, User user, Action action, Set<Object> visited,
-            Map<String, FilterCondition> conditionCache) {
+    private Object traverseFields(Object node, Class<?> clazz, User user, Action action,
+            Map<Object, Object> validationCache,
+            Set<Object> inProgress, Map<String, FilterCondition> conditionCache) {
         List<Field> fields = traversalCache.computeIfAbsent(clazz, this::getTraversableFields);
 
         for (Field field : fields) {
             try {
                 Object value = field.get(node);
                 if (value != null) {
-                    traverseAndValidate(value, user, action, visited, conditionCache);
+                    Object validatedValue = traverseAndValidate(value, user, action, validationCache, inProgress,
+                            conditionCache);
+
+                    // Strict filtering: if a child is invalid (null), the parent is invalid.
+                    // This implements the "All or Nothing" policy for the object graph.
+                    if (validatedValue == null) {
+                        return null;
+                    }
                 }
             } catch (IllegalAccessException e) {
                 log.warn("Failed to traverse field {} in {}", field.getName(), clazz.getName());
             }
         }
+        return node;
     }
 
     private List<Field> getTraversableFields(Class<?> clazz) {

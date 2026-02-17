@@ -147,9 +147,9 @@ public class SecurityAspect {
         }
 
         // Post-execution validation for JOINs / Eager loading
-        resultSecurityValidator.validate(result, currentUser, Action.SELECT);
+        Object validatedResult = resultSecurityValidator.validate(result, currentUser, Action.SELECT);
 
-        return result;
+        return validatedResult;
     }
 
     // ---- INSERT: table-level allow / deny ----
