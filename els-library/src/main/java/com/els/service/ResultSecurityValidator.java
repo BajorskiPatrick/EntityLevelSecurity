@@ -36,10 +36,35 @@ public class ResultSecurityValidator {
     // Cache Class -> List of fields to traverse (non-primitive, non-ignored)
     private final Map<Class<?>, List<Field>> traversalCache = new ConcurrentHashMap<>();
 
+    @org.springframework.beans.factory.annotation.Value("${els.join.behavior:STRICT}")
+    private String joinBehaviorConfig;
+
+    private JoinBehavior joinBehavior;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        try {
+            this.joinBehavior = JoinBehavior.valueOf(joinBehaviorConfig.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid els.join.behavior value: {}. Defaulting to STRICT.", joinBehaviorConfig);
+            this.joinBehavior = JoinBehavior.STRICT;
+        }
+    }
+
+    public enum JoinBehavior {
+        STRICT, // Filter out parent if child is denied
+        ID_ONLY // Replace denied child with ID-only object
+    }
+
     public ResultSecurityValidator(PermissionResolver permissionResolver,
             @Qualifier("activeAccessStrategy") AccessStrategy activeStrategy) {
         this.permissionResolver = permissionResolver;
         this.activeStrategy = activeStrategy;
+    }
+
+    // For testing/manual config
+    public void setJoinBehavior(JoinBehavior behavior) {
+        this.joinBehavior = behavior;
     }
 
     /**
@@ -157,12 +182,46 @@ public class ResultSecurityValidator {
         // If it's an Entity, validate permissions
         if (clazz.isAnnotationPresent(Entity.class)) {
             if (!isEntityAllowed(node, clazz, user, action, conditionCache)) {
+                if (joinBehavior == JoinBehavior.ID_ONLY) {
+                    Object idOnlyProxy = createIdOnlyProxy(node, clazz);
+                    if (idOnlyProxy != null) {
+                        return idOnlyProxy;
+                    }
+                }
                 return null;
             }
         }
 
         // Traverse fields
         return traverseFields(node, clazz, user, action, validationCache, inProgress, conditionCache);
+    }
+
+    private Object createIdOnlyProxy(Object original, Class<?> clazz) {
+        Long id = extractId(original, clazz);
+        if (id == null)
+            return null;
+
+        try {
+            Object proxy = clazz.getDeclaredConstructor().newInstance();
+            // Try setId method
+            try {
+                Method setId = clazz.getMethod("setId", Long.class);
+                setId.invoke(proxy, id);
+                return proxy;
+            } catch (Exception e1) {
+                // Try field access
+                for (Field f : clazz.getDeclaredFields()) {
+                    if (f.isAnnotationPresent(Id.class)) {
+                        f.setAccessible(true);
+                        f.set(proxy, id);
+                        return proxy;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to create ID-only proxy for {}", clazz.getName(), e);
+        }
+        return null;
     }
 
     private boolean isEntityAllowed(Object entity, Class<?> entityClass, User user, Action action,
@@ -241,10 +300,27 @@ public class ResultSecurityValidator {
                     Object validatedValue = traverseAndValidate(value, user, action, validationCache, inProgress,
                             conditionCache);
 
-                    // Strict filtering: if a child is invalid (null), the parent is invalid.
-                    // This implements the "All or Nothing" policy for the object graph.
-                    if (validatedValue == null) {
-                        return null;
+                    if (validatedValue != value) {
+                        // Value has changed (filtered or sanitized)
+                        if (validatedValue == null) {
+                            // If STRICT mode, or if ID_ONLY failed to create proxy -> invalidate parent
+                            // to avoid leaking partial state or unexpected nulls?
+                            // Or should we just set to null in ID_ONLY mode?
+                            // Let's assume STRICT requirement applies if we can't produce a valid result.
+                            // BUT, for collections, null items are already removed by traverseAndValidate
+                            // logic for Iterables.
+                            // This check is for single fields.
+
+                            if (joinBehavior == JoinBehavior.STRICT) {
+                                return null;
+                            }
+                            // In ID_ONLY mode, if we get null here, it means even proxy creation failed.
+                            // We can set field to null.
+                            field.set(node, null);
+                        } else {
+                            // Value changed but is not null (e.g. sanitized proxy)
+                            field.set(node, validatedValue);
+                        }
                     }
                 }
             } catch (IllegalAccessException e) {

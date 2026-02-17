@@ -358,7 +358,7 @@ const HospitalDashboard = ({ user }) => {
                     {activeTab === 'patients' && data.map(p => (
                         <div key={p.id} className="card">
                             <h3>{p.name}</h3>
-                            <div className="tag">{p.department ? p.department.name : 'No Dept'}</div>
+                            <div className="tag">{p.department ? (p.department.name || `Dept ID: ${p.department.id}`) : 'No Dept'}</div>
                             <div className="id-badge">ID: {p.id}</div>
                             <div className="card-actions">
                                 <button className="btn-edit small" onClick={() => setEditingPatient({
@@ -374,7 +374,7 @@ const HospitalDashboard = ({ user }) => {
                     {activeTab === 'records' && data.map(r => (
                         <div key={r.id} className="card record-card">
                             <h3>{r.diagnosis}</h3>
-                            <p><strong>Patient:</strong> {r.patient ? r.patient.name : 'Unknown'} (ID: {r.patient?.id})</p>
+                            <p><strong>Patient:</strong> {r.patient ? (r.patient.name || `Patient ID: ${r.patient.id}`) : 'Unknown'} (ID: {r.patient?.id})</p>
                             <p><strong>Treatment:</strong> {r.treatment}</p>
                             <div className="id-badge">ID: {r.id}</div>
                             <div className="card-actions">
