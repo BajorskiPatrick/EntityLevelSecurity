@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="HttpClientEndpointsTabState">
+    <option name="requestToText" value="&lt;CachedHttpClientTabRequests&gt;&#10;  &lt;entry key=&quot;289e6b70bdc1b204d505da94fe97e2ca9f02e83e&quot; value=&quot;###&amp;#10;POST http://localhost:8080/api/admin/permissions&amp;#10;Content-Type: application/json&amp;#10;&amp;#10;{&amp;#10;  &amp;quot;username&amp;quot;: &amp;quot;&amp;quot;,&amp;#10;  &amp;quot;roleId&amp;quot;: 0,&amp;#10;  &amp;quot;entityName&amp;quot;: &amp;quot;&amp;quot;,&amp;#10;  &amp;quot;action&amp;quot;: &amp;quot;SELECT&amp;quot;,&amp;#10;  &amp;quot;rowId&amp;quot;: 0&amp;#10;}&quot; /&gt;&#10;&lt;/CachedHttpClientTabRequests&gt;" />
+  </component>
+</project>
